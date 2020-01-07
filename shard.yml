@@ -1,0 +1,9 @@
+name: ior
+version: 0.1.0
+
+authors:
+  - Linus Sellberg <sellberg@gmail.com>
+
+crystal: 0.31.1
+
+license: MIT
