@@ -1,8 +1,7 @@
+require "./libc"
+
 @[Link("liburing")]
 lib LibUring
-  # Not really certain this is correct:
-  alias KernelRWFT = Int32
-
   enum Op : UInt8
     NOP
     READV
@@ -14,20 +13,39 @@ lib LibUring
     POLL_REMOVE
     SYNC_FILE_RANGE
     SENDMSG
-    RECVMSG # ^Linux 5.1
+    RECVMSG # ^Linux 5.3
     TIMEOUT
     TIMEOUT_REMOVE
     ACCEPT
     ASYNC_CANCEL
-    LINK_TIMEOUT # ^Linux 5.2
+    LINK_TIMEOUT # ^Linux 5.5
     CONNECT
     FALLOCATE
     OPENAT
     CLOSE
-    FILES_UPDATE
+    FILES_UPDATE # ^Linux 5.6
     STATX
     READ
-    WRITE # ^Linux 5.3
+    WRITE
+    FADVISE
+    MADVISE
+  end
+
+  @[Flags]
+  enum SQE_FLAG : UInt8
+    FIXED_FILE
+    IO_DRAIN
+    IO_LINK
+    IO_HARDLINK
+    ASYNC
+  end
+
+  @[Flags]
+  enum SETUP_FLAG : LibC::UInt
+    IOPOLL
+    SQPOLL
+    SQ_AFF
+    CQSIZE
   end
 
   struct IOUringSQ
@@ -40,7 +58,7 @@ lib LibUring
     array : LibC::UInt*
     io_uring_sqe : IOUringSQE*
     sqe_head : LibC::UInt
-    sql_tail : LibC::UInt
+    sqe_tail : LibC::UInt
 
     ring_sz : LibC::SizeT
     ring_ptr : Void*
@@ -52,9 +70,9 @@ lib LibUring
   end
 
   union EventFlags
-    rw_flags : KernelRWFT
+    rw_flags : LibC::KernelRWFT
     fsync_flags : UInt32
-    poll_events : UInt16
+    poll_events : LibC::POLL_FLAG
     sync_range_flags : UInt32
     msg_flags : UInt32
     timeout_flags : UInt32
@@ -138,26 +156,12 @@ lib LibUring
     cq_off : IOCQRingOffsets
   end
 
-  struct IOVec
-    # Workaround to crystal issue #4599
-    #  iov_base : Void*
-    iov_base : Int64
-    iov_len : LibC::SizeT
-  end
-
-  struct MsgHeader
-    name : LibC::Sockaddr*
-    namelen : LibC::Int
-    iov : IOVec*
-    iovlen : LibC::SizeT
-    control : Void*
-    controllen : LibC::SizeT
-    flags : LibC::UInt
-  end
-
   fun io_uring_queue_init_params(entries : LibC::UInt, ring : IOUring*, p : IOUringParams*) : LibC::Int
-  fun io_uring_queue_init(entries : LibC::UInt, ring : IOUring*, flags : LibC::UInt) : LibC::Int
+  fun io_uring_queue_init(entries : LibC::UInt, ring : IOUring*, flags : SETUP_FLAG) : LibC::Int
   fun io_uring_get_sqe(ring : IOUring*) : IOUringSQE*
   fun io_uring_submit(IOUring*) : LibC::Int
   fun io_uring_queue_exit(IOUring*) : Void
+
+  fun io_uring_register_files(ring : IOUring*, files : LibC::Int*, nr_files : LibC::UInt) : LibC::Int
+  fun io_uring_unregister_files(ring : IOUring*) : LibC::Int
 end

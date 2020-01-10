@@ -1,4 +1,5 @@
 require "../lib/liburing_shim"
+require "./sqe"
 
 module IOR
   class IOUring
@@ -6,16 +7,33 @@ module IOR
     # in Crystal stdlib as they have a lot of irrelevant functionality,
     # as well as lots of methods that emit blocking syscalls.
     private property closed : Bool
-    private property ring : Pointer(LibUring::IOUring)
+    private property registered_files : Bool
 
-    def initialize(size = 32)
+    def initialize(size = 32, sq_poll = false)
       @closed = false
 
-      flags = 0
-      # TODO: Support
-      # SETUP_SQPOLL: !
-      # SETUP_CQSIZE
-      LibUring.io_uring_queue_init(size, out @ring, flags)
+      flags = LibUring::SETUP_FLAG::None
+      # Other flags not currently relevant as we have no support of
+      # initing using the params object. Do note that sqpoll requires
+      # using only registred files and heightened privileges.
+      flags |= LibUring::SETUP_FLAG::SQPOLL if sq_poll
+
+      @ring = LibUring::IOUring.new
+      @registered_files = false
+      res = LibUring.io_uring_queue_init(size, ring, flags)
+      unless res == 0
+        raise "Init: #{err(res)}"
+      end
+    end
+
+    def self.new(**options)
+      ring = new(**options)
+      yield ring
+      ring.close
+    end
+
+    private def ring
+      pointerof(@ring)
     end
 
     def close
@@ -33,43 +51,85 @@ module IOR
       close rescue nil
     end
 
-    private def get_sqe
-      LibUring.io_uring_get_sqe(ring)
+    # Register files for less costly access.
+    # Note: Registering will replace any other registered files.
+    # TODO: Support io_uring_register_files_update when kernel get
+    # support for it.
+    def register_files(files)
+      unregister_files if @registered_files
+      fds = files.map &.fd
+      LibUring.io_uring_register_files(ring, fds, fds.size)
+      @registered_files = true
     end
 
-    def readv(fd, iovecs, offset, user_data = 0)
-      prep_rw(LibUring::Op::READV, fd, iovecs.to_unsafe, iovecs.size, offset, user_data)
+    def unregister_files
+      LibUring.io_uring_unregister_files(ring)
+      @registered_files = false
     end
 
-    def writev(fd, iovecs, offset, user_data = 0)
-      prep_rw(LibUring::Op::WRITEV, fd, iovecs.to_unsafe, iovecs.size, offset, user_data)
+    # Submit events to kernel
+    def submit
+      res = LibUring.io_uring_submit(ring)
+      if res < 0
+        raise "Submit #{err res}"
+      end
+      res
     end
 
-    def sendmsg(fd, msg : MsgHeader*, flags, user_data = 0)
-      prep_rw(LibUring::Op::SENDMSG, fd, msg, 1, 0, user_data).tap do |sqe|
-        sqe.flags = flags
+    # Returns next event. Waits for an event to be completed if none are available
+    def wait
+      wait 1
+    end
+
+    # Returns next event. Waits for nr events to be completed if none are available
+    def wait(nr)
+      res = LibUringShim._io_uring_wait_cqe_nr(ring, out cqe_ptr, nr)
+      if res < 0
+        raise "Wait: #{err res}"
+      end
+      cqe_ptr
+    end
+
+    # Returns next event
+    def peek
+      res = LibUringShim._io_uring_wait_cqe_nr(ring, out cqe_ptr, 0)
+      if res < 0
+        raise "Peek: #{err res}"
+      elsif res > 0
+        cqe_ptr
+      else
+        nil
       end
     end
 
-    def recvmsg(fd, msg : MsgHeader*, flags, user_data = 0)
-      prep_rw(LibUring::Op::RECVMSG, fd, msg, 1, 0, user_data).tap do |sqe|
-        sqe.flags = flags
-      end
+    # Marks an event as consumed
+    def seen(cqe_ptr)
+      LibUringShim._io_uring_cqe_seen(ring, cqe_ptr)
     end
 
-    private def prep_rw(op : LibUring::Op, file : File, addr, length, offset, user_data)
-      sqe = get_sqe
-      sqe.value.opcode = op
-      sqe.value.flags = 0
-      sqe.value.ioprio = 0
-      sqe.value.fd = file.fd
-      sqe.value.off_or_addr2.off = offset
-      sqe.value.addr = addr.address
-      sqe.value.len = length
-      sqe.value.event_flags.rw_flags = 0
-      sqe.value.user_data = user_data
-      sqe.value.buf_or_pad.pad2[0] = sqe.value.buf_or_pad.pad2[1] = sqe.value.buf_or_pad.pad2[2] = 0
-      sqe
+    # Return how many unsubmitted entries there is in the submission
+    # queue.
+    def sq_ready
+      sq = ring.value.sq
+      sq.sqe_tail - sq.sqe_head
+    end
+
+    # Space left in the submission queue.
+    def sq_space_left
+      ring.value.sq.kring_entries.value - sq_ready
+    end
+
+    # Completion events waiting for processing.
+    def cq_ready
+      LibUringShim._io_uring_cq_ready(ring)
+    end
+
+    def sqe
+      SQE.new(LibUring.io_uring_get_sqe(ring))
+    end
+
+    private def err(res)
+      String.new(LibC.strerror(-res))
     end
   end
 end

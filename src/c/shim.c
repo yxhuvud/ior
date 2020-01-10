@@ -1,19 +1,14 @@
 #include "liburing.h"
 
-extern void _io_uring_cqe_seen(struct io_uring *ring, struct io_uring_cqe *cqe) {
-        io_uring_cqe_seen(ring, cqe);
+extern inline void _io_uring_cqe_seen(struct io_uring *ring, struct io_uring_cqe *cqe) {
+  io_uring_cqe_seen(ring, cqe);
 }
 
-/* io_uring_smp_load_acquire */
-/* io_uring_cq_advance */
-
-/*  io_uring_sq_ready */
-/* io_uring_sq_space_left */
-/* io_uring_cq_ready */
-/* io_uring_peek_cqe */
-extern inline int _io_uring_wait_cqe(struct io_uring *ring, struct io_uring_cqe **cqe_ptr) {
-        return io_uring_wait_cqe(ring, cqe_ptr);
+extern inline unsigned _io_uring_cq_ready(struct io_uring *ring) {
+  return io_uring_cq_ready(ring);
 }
-extern int _io_uring_peek_cqe(struct io_uring *ring, struct io_uring_cqe **cqe) {
-        return io_uring_peek_cqe(ring, cqe);
+
+
+extern inline int _io_uring_wait_cqe_nr(struct io_uring *ring, struct io_uring_cqe **cqe_ptr, unsigned wait_nr) {
+  return io_uring_wait_cqe_nr(ring, cqe_ptr, wait_nr);
 }
