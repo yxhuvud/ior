@@ -28,7 +28,7 @@ Operations on a ring include:
 * `ring.submit`: Submits the currently unsubmitted events in the submission
 queue. Multiple events can be submitted at once.
 
-* `ring.wait`, `ring.wait n` : Wait until there is at least one (`n`) entry in the
+* `ring.wait`, `ring.wait(n)` : Wait until there is at least one (`n`) entry in the
 completion queue. Then it returns the first of those.
 
 * `ring.peek`: If there is an unprocessed entry in the submission queue,
