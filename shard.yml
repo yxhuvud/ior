@@ -7,3 +7,11 @@ authors:
 crystal: 0.31.1
 
 license: MIT
+
+libraries:
+  liburing: "*"
+
+repository: "https://github.com/yxhuvud/ior"
+
+scripts:
+  postinstall: make
