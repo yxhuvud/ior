@@ -117,7 +117,7 @@ ring.close
 ```
 
 ## Read more
-Additional resource can be found in the `man` pages, and at
+Additional resources can be found in the `man` pages, and at
 https://kernel.dk/io_uring.pdf or https://github.com/axboe/liburing .
 
 
