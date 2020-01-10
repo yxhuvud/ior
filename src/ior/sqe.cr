@@ -20,8 +20,8 @@ module IOR
       prep_rw(LibUring::Op::WRITEV, fd, iovecs.to_unsafe, iovecs.size, offset, **options)
     end
 
-    def fsync(fd, flags, **options)
-      prep_rw(LibUring::Op::WRITEV, fd, nil, 0, 0, **options).tap do |sqe|
+    def fsync(fd, flags = 0, **options)
+      prep_rw(LibUring::Op::FSYNC, fd, nil, 0, 0, **options).tap do |sqe|
         sqe.value.event_flags.fsync_flags = flags
       end
     end
