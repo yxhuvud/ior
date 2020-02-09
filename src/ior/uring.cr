@@ -1,5 +1,6 @@
 require "../lib/liburing_shim"
 require "./sqe"
+require "./cqe"
 
 module IOR
   class IOUring
@@ -76,35 +77,38 @@ module IOR
       res
     end
 
-    # Returns next event. Waits for an event to be completed if none are available
+    # Returns next event. Waits for an event to be completed if none
+    # are available
     def wait
       wait 1
     end
 
-    # Returns next event. Waits for nr events to be completed if none are available
+    # Returns next event. Waits for nr events to be completed if none
+    # are available
     def wait(nr)
-      res = LibUringShim._io_uring_wait_cqe_nr(ring, out cqe_ptr, nr)
-      if res < 0
-        raise "Wait: #{err res}"
+      cqe = wait_cqe(nr)
+      if cqe.error?
+        raise "Wait: #{err cqe.errno}"
       end
-      cqe_ptr
+
+      cqe
     end
 
     # Returns next event
     def peek
-      res = LibUringShim._io_uring_wait_cqe_nr(ring, out cqe_ptr, 0)
-      if res < 0
-        raise "Peek: #{err res}"
-      elsif res > 0
-        cqe_ptr
+      cqe = wait_cqe(0)
+      if cqe.error?
+        raise "Peek: #{err cqe.errno}"
+      elsif cqe.res > 0
+        cqe
       else
         nil
       end
     end
 
     # Marks an event as consumed
-    def seen(cqe_ptr)
-      LibUringShim._io_uring_cqe_seen(ring, cqe_ptr)
+    def seen(cqe)
+      LibUringShim._io_uring_cqe_seen(ring, cqe)
     end
 
     # Return how many unsubmitted entries there is in the submission
@@ -126,6 +130,11 @@ module IOR
 
     def sqe
       SQE.new(LibUring.io_uring_get_sqe(ring))
+    end
+
+    private def wait_cqe(nr)
+      res = LibUringShim._io_uring_wait_cqe_nr(ring, out cqe_ptr, nr)
+      CQE.new(cqe_ptr, res)
     end
 
     private def err(res)

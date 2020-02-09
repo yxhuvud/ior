@@ -15,9 +15,9 @@ describe IOR::SQE do
           ring.submit.should eq 1
           cqe = ring.wait
 
-          cqe.value.user_data.should eq 4711
-          cqe.value.res.should eq content.size
-          String.new(buf[0, cqe.value.res]).should eq content
+          cqe.user_data.should eq 4711
+          cqe.res.should eq content.size
+          String.new(buf[0, cqe.res]).should eq content
         end
       end
     end
@@ -33,8 +33,8 @@ describe IOR::SQE do
           ring.submit.should eq 1
           cqe = ring.wait
 
-          cqe.value.user_data.should eq 4711
-          cqe.value.res.should eq content.size
+          cqe.user_data.should eq 4711
+          cqe.res.should eq content.size
           File.read(".test/writev").should eq content
         end
       end
@@ -54,9 +54,9 @@ describe IOR::SQE do
         ring.submit.should eq 1
         cqe = ring.wait
 
-        cqe.value.user_data.should eq 4711
-        cqe.value.res.should eq str.size
-        String.new(buf[0, cqe.value.res]).should eq str
+        cqe.user_data.should eq 4711
+        cqe.res.should eq str.size
+        String.new(buf[0, cqe.res]).should eq str
       end
     end
   end
@@ -73,8 +73,8 @@ describe IOR::SQE do
         cqe = ring.wait
         left.close
 
-        cqe.value.user_data.should eq 4711
-        cqe.value.res.should eq str.size
+        cqe.user_data.should eq 4711
+        cqe.res.should eq str.size
         right.gets_to_end.should eq str
       end
     end
@@ -96,9 +96,9 @@ describe IOR::SQE do
 
         cqe = ring.wait
         ring.seen(cqe)
-        (cqe.value.res & LibC::POLL_FLAG::POLLIN.to_i > 0).should be_true
+        (cqe.res & LibC::POLL_FLAG::POLLIN.to_i > 0).should be_true
 
-        cqe.value.user_data.should eq 4711
+        cqe.user_data.should eq 4711
       end
     end
   end

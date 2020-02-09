@@ -20,9 +20,9 @@ describe IOR::IOUring do
           ring.submit.should eq 1
           cqe = ring.wait
 
-          cqe.value.user_data.should eq 4711
-          cqe.value.res.should eq content.size
-          String.new(buf[0, cqe.value.res]).should eq content
+          cqe.user_data.should eq 4711
+          cqe.res.should eq content.size
+          String.new(buf[0, cqe.res]).should eq content
         end
       end
     end
@@ -68,6 +68,19 @@ describe IOR::IOUring do
         ring.sq_ready.should eq 0
         ring.sq_space_left.should eq 4
         ring.cq_ready.should eq 3
+      end
+    end
+  end
+
+  describe "#wait" do
+    it "waits until completion" do
+      IOR::IOUring.new(size: 1) do |ring|
+        ring.sqe.nop user_data: 123
+        ring.submit
+        cqe = ring.wait
+
+        cqe.error?.should be_false
+        cqe.user_data.should eq 123
       end
     end
   end
