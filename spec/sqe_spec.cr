@@ -85,20 +85,16 @@ describe IOR::SQE do
       str = "hello world!"
       left, right = UNIXSocket.pair
       IOR::IOUring.new do |ring|
-        buf = Slice(UInt8).new(32) { 0u8 }
-        header = msgheader(iovec(buf))
-
         ring.sqe.poll_add(left, :POLLIN, user_data: 4711)
-
         ring.submit
+        cqe = ring.peek.should be_nil
 
         spawn { right.write str.to_slice }
 
-        cqe = ring.wait
-        ring.seen(cqe)
-        (cqe.res & LibC::POLL_FLAG::POLLIN.to_i > 0).should be_true
-
-        cqe.user_data.should eq 4711
+        ring.wait do |cqe|
+          (cqe.res & LibC::POLL_FLAG::POLLIN.to_i > 0).should be_true
+          cqe.user_data.should eq 4711
+        end
       end
     end
   end

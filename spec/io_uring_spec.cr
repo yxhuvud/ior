@@ -18,11 +18,12 @@ describe IOR::IOUring do
 
           ring.sqe.readv(0, iovec(buf), 0, user_data: 4711, fixed_file: true)
           ring.submit.should eq 1
-          cqe = ring.wait
 
-          cqe.user_data.should eq 4711
-          cqe.res.should eq content.size
-          String.new(buf[0, cqe.res]).should eq content
+          ring.wait do |cqe|
+            cqe.user_data.should eq 4711
+            cqe.res.should eq content.size
+            String.new(buf[0, cqe.res]).should eq content
+          end
         end
       end
     end
@@ -77,10 +78,11 @@ describe IOR::IOUring do
       IOR::IOUring.new(size: 1) do |ring|
         ring.sqe.nop user_data: 123
         ring.submit
-        cqe = ring.wait
 
-        cqe.error?.should be_false
-        cqe.user_data.should eq 123
+        ring.wait do |cqe|
+          cqe.error?.should be_false
+          cqe.user_data.should eq 123
+        end
       end
     end
   end
@@ -96,10 +98,10 @@ describe IOR::IOUring do
         ring.sqe.nop user_data: 123
         ring.submit
 
-        cqe = ring.wait
-        cqe.user_data.should eq 123
-        ring.seen cqe
-        if cqe = ring.peek
+        ring.wait do |cqe|
+          cqe.user_data.should eq 123
+        end
+        ring.peek do |cqe|
           cqe.user_data.should eq 4711
         end
       end

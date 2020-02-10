@@ -83,6 +83,17 @@ module IOR
       wait 1
     end
 
+    # Yields next event, and marks it as seen when done.
+    def wait
+      cqe = wait 1
+
+      begin
+        yield cqe
+      ensure
+        seen cqe
+      end
+    end
+
     # Returns next event. Waits for nr events to be completed if none
     # are available
     def wait(nr)
@@ -103,6 +114,17 @@ module IOR
         raise "Peek: #{err cqe.errno}"
       else
         cqe
+      end
+    end
+
+    # Yields next event if available, and marks it as seen when done.
+    def peek
+      if cqe = peek
+        begin
+          yield cqe
+        ensure
+          seen(cqe)
+        end
       end
     end
 
