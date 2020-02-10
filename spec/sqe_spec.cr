@@ -102,4 +102,38 @@ describe IOR::SQE do
       end
     end
   end
+
+  describe "#timeout" do
+    it "timeouts" do
+      time = 0.001.seconds
+      timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
+      IOR::IOUring.new do |ring|
+        ring.sqe.timeout(pointerof(timespec), user_data: 4711)
+        ring.submit
+        ring.peek.should eq nil
+
+        cqe = ring.wait
+        cqe.user_data.should eq 4711
+        cqe.timed_out?.should be_true
+      end
+    end
+
+    it "returns early if appropriate amount of events has completed." do
+      time = 0.001.seconds
+      timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
+      IOR::IOUring.new do |ring|
+        ring.sqe.timeout(pointerof(timespec), user_data: 4711)
+        ring.sqe.nop(user_data: 17)
+        ring.submit
+
+        cqe = ring.wait
+        cqe.user_data.should eq 17
+        ring.seen cqe
+
+        cqe = ring.wait
+        cqe.user_data.should eq 4711
+        cqe.timed_out?.should be_false
+      end
+    end
+  end
 end

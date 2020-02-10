@@ -26,6 +26,12 @@ module IOR
       end
     end
 
+    def poll_add(fd, poll_mask : LibC::POLL_FLAG = LibC::POLL_FLAG::POLLIN, **options)
+      prep_rw(LibUring::Op::POLL_ADD, fd, nil, 0, 0, **options).tap do |sqe|
+        sqe.value.event_flags.poll_events = poll_mask
+      end
+    end
+
     def sendmsg(fd, msg : LibC::MsgHeader*, flags, **options)
       prep_rw(LibUring::Op::SENDMSG, fd, msg, 1, 0, **options).tap do |sqe|
         sqe.value.event_flags.msg_flags = flags
@@ -38,9 +44,9 @@ module IOR
       end
     end
 
-    def poll_add(fd, poll_mask : LibC::POLL_FLAG = LibC::POLL_FLAG::POLLIN, **options)
-      prep_rw(LibUring::Op::POLL_ADD, fd, nil, 0, 0, **options).tap do |sqe|
-        sqe.value.event_flags.poll_events = poll_mask
+    def timeout(time : LibC::Timespec*, relative = true, wait_nr = 1, **options)
+      prep_rw(LibUring::Op::TIMEOUT, nil, time, 1, wait_nr, **options).tap do |sqe|
+        sqe.value.event_flags.timeout_flags = relative ? 0 : 1
       end
     end
 
