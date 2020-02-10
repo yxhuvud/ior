@@ -14,21 +14,25 @@ lib LibUring
     SYNC_FILE_RANGE
     SENDMSG
     RECVMSG # ^Linux 5.3
-    TIMEOUT
+    TIMEOUT # ^Linux 5.4
     TIMEOUT_REMOVE
     ACCEPT
     ASYNC_CANCEL
-    LINK_TIMEOUT # ^Linux 5.5
-    CONNECT
+    LINK_TIMEOUT
+    CONNECT # ^Linux 5.5
     FALLOCATE
     OPENAT
     CLOSE
-    FILES_UPDATE # ^Linux 5.6
+    FILES_UPDATE
     STATX
     READ
     WRITE
     FADVISE
-    MADVISE
+    MADVISE # ^Linux 5.6
+    SEND
+    RECV
+    OPENAT2
+    EPOLL_CTL
   end
 
   @[Flags]
