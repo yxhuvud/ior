@@ -84,4 +84,25 @@ describe IOR::IOUring do
       end
     end
   end
+
+  describe "#peek" do
+    it "does soething" do
+      time = 0.002.seconds
+      timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
+      IOR::IOUring.new(size: 2) do |ring|
+        ring.sqe.timeout(pointerof(timespec), user_data: 4711)
+        ring.submit
+        ring.peek.should be_nil
+        ring.sqe.nop user_data: 123
+        ring.submit
+
+        cqe = ring.wait
+        cqe.user_data.should eq 123
+        ring.seen cqe
+        if cqe = ring.peek
+          cqe.user_data.should eq 4711
+        end
+      end
+    end
+  end
 end

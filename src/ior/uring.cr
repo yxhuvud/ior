@@ -94,15 +94,15 @@ module IOR
       cqe
     end
 
-    # Returns next event
+    # Returns next event if one is available.
     def peek
       cqe = wait_cqe(0)
-      if cqe.error?
-        raise "Peek: #{err cqe.errno}"
-      elsif cqe.res > 0
-        cqe
-      else
+      if cqe.errno == -LibC::EAGAIN
         nil
+      elsif cqe.error?
+        raise "Peek: #{err cqe.errno}"
+      else
+        cqe
       end
     end
 
