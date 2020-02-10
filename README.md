@@ -40,28 +40,36 @@ return it. Otherwise return `nil`.
 
   The following operations are then supported to configure the sqe.
 
-  * `sqe.nop`: Submit an event and get it back in the completion queue, without actually doing anything.
-  * `sqe.readv`, `sqe.writev`: Vectored writes. Same as `readv` and `writev` syscalls.
+  * `sqe.nop`: Submit an event and get it back in the completion
+    queue, without actually doing anything.
+  * `sqe.readv`, `sqe.writev`: Vectored writes. Same as `readv` and
+    `writev` syscalls.
   * `sqe.fsync`: File sync. Same as `fsync` syscall, but note that the
-                queue doesn't promise to handle events in order, by default.
-  * `sqe.sendmsg`, `sqe.recvmsg`: Network read/write. Same as `sendmsg` and `recvmsg` syscalls.
+                queue doesn't promise to handle events in order, by
+                default.
+  * `sqe.sendmsg`, `sqe.recvmsg`: Network read/write. Same as
+    `sendmsg` and `recvmsg` syscalls.
   * `sqe.poll_add`: Similar to `poll` and `epoll`.
+  * `sqe.timeout`: Wait until the specified amount of events have
+    completed, or until the given time has elapsed.
 
   All SQEs supports the following options:
     * `fixed_file` : Use one of the previously registered files. See `IOR::IOUring#register_files`.
     * `io_drain`: Process all other entries in the ring before processing this.
-    * `io_link`: If this is set, then the next event will not be started before the processing of this even is done.
+    * `io_link`: If this is set, then the next event will not be
+      started before the processing of this even is done.
     * `io_hardlink`: Same as above but different. See `man` pages for description.
 
-  See https://github.com/yxhuvud/ior/blob/master/src/ior/sqe.cr and `man io_uring_enter` for details.
+  See https://github.com/yxhuvud/ior/blob/master/src/ior/sqe.cr and
+  `man io_uring_enter` for details.
 
 * `ring.close`: Tear down the ring.
 
-* `ring.register_files`, `ring.unregister_files`: In addition to working with normal file
-descriptors, IOUring can avoid the cost of setting up internal
-structures for each and every call by registering a list of files in
-advance. To make use of these files, the submission queue event (sqe)
-must have the `fixed_file` flag set.
+* `ring.register_files`, `ring.unregister_files`: In addition to
+working with normal file descriptors, IOUring can avoid the cost of
+setting up internal structures for each and every call by registering
+a list of files in advance. To make use of these files, the submission
+queue event (sqe) must have the `fixed_file` flag set.
 
 * `ring.sq_ready`: Shows how many unsubmitted events are present in the submission queue.
 
