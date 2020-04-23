@@ -11,10 +11,6 @@ module IOR
       @cqe
     end
 
-    def error?
-      @res < 0
-    end
-
     def errno
       @res
     end
@@ -29,6 +25,14 @@ module IOR
 
     def error_message
       String.new(LibC.strerror(-(error? ? @res : res)))
+    end
+
+    def ring_error?
+      @res < 0
+    end
+
+    def cqe_error?
+      -res < 0
     end
 
     def eagain?

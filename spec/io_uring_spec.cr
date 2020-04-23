@@ -80,7 +80,8 @@ describe IOR::IOUring do
         ring.submit
 
         ring.wait do |cqe|
-          cqe.error?.should be_false
+          cqe.ring_error?.should be_false
+          cqe.cqe_error?.should be_false
           cqe.user_data.should eq 123
         end
       end

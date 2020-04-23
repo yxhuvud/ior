@@ -98,7 +98,7 @@ module IOR
     # are available
     def wait(nr)
       cqe = wait_cqe(nr)
-      if cqe.error?
+      if cqe.ring_error?
         raise "Wait: #{err cqe.errno}"
       end
 
@@ -110,7 +110,7 @@ module IOR
       cqe = wait_cqe(0)
       if cqe.errno == -LibC::EAGAIN
         nil
-      elsif cqe.error?
+      elsif cqe.ring_error?
         raise "Peek: #{err cqe.errno}"
       else
         cqe
