@@ -31,6 +31,10 @@ module IOR
       String.new(LibC.strerror(-(error? ? @res : res)))
     end
 
+    def eagain?
+      (-res) == 11
+    end
+
     def timed_out?
       (-res) == 62
     end
