@@ -24,7 +24,7 @@ module IOR
     end
 
     def error_message
-      String.new(LibC.strerror(-(error? ? @res : res)))
+      String.new(LibC.strerror(-(ring_error? ? @res : res)))
     end
 
     def ring_error?
