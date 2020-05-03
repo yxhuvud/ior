@@ -13,11 +13,11 @@ module IOR
 
     # TODO: Support using current position (ie offset -1), based on IORING_FEAT_RW_CUR_POS
     def readv(fd, iovecs, offset, **options)
-      prep_rw(LibUring::Op::READV, fd, iovecs.to_unsafe, iovecs.size, offset, **options)
+      prep_rw(LibUring::Op::READV, fd, iovecs.to_unsafe.address, iovecs.size, offset, **options)
     end
 
     def writev(fd, iovecs, offset, **options)
-      prep_rw(LibUring::Op::WRITEV, fd, iovecs.to_unsafe, iovecs.size, offset, **options)
+      prep_rw(LibUring::Op::WRITEV, fd, iovecs.to_unsafe.address, iovecs.size, offset, **options)
     end
 
     def fsync(fd, flags = 0, **options)
@@ -33,25 +33,39 @@ module IOR
     end
 
     def sendmsg(fd, msg : LibC::MsgHeader*, flags, **options)
-      prep_rw(LibUring::Op::SENDMSG, fd, msg, 1, 0, **options).tap do |sqe|
+      prep_rw(LibUring::Op::SENDMSG, fd, msg.address, 1, 0, **options).tap do |sqe|
         sqe.value.event_flags.msg_flags = flags
       end
     end
 
     def recvmsg(fd, msg : LibC::MsgHeader*, flags, **options)
-      prep_rw(LibUring::Op::RECVMSG, fd, msg, 1, 0, **options).tap do |sqe|
+      prep_rw(LibUring::Op::RECVMSG, fd, msg.address, 1, 0, **options).tap do |sqe|
         sqe.value.event_flags.msg_flags = flags
       end
     end
 
     def timeout(time : LibC::Timespec*, relative = true, wait_nr = 1, **options)
-      prep_rw(LibUring::Op::TIMEOUT, nil, time, 1, wait_nr, **options).tap do |sqe|
+      prep_rw(LibUring::Op::TIMEOUT, nil, time.address, 1, wait_nr, **options).tap do |sqe|
         sqe.value.event_flags.timeout_flags = relative ? 0 : 1
       end
     end
 
-    private def prep_rw(op : LibUring::Op, io_or_index, addr, length, offset,
-                        user_data = 0,
+    def link_timeout(time : LibC::Timespec*, relative = true, **options)
+      prep_rw(LibUring::Op::LINK_TIMEOUT, nil, time.address, 1, 0, **options).tap do |sqe|
+        sqe.value.event_flags.timeout_flags = relative ? 0 : 1
+      end
+    end
+
+    def timeout_remove(cancel_userdata : UInt64, **options)
+      prep_rw(LibUring::Op::TIMEOUT_REMOVE, nil, cancel_userdata, 0, 0, **options)
+    end
+
+    def async_cancel(cancel_userdata : UInt64, **options)
+      prep_rw(LibUring::Op::ASYNC_CANCEL, nil, cancel_userdata, 0, 0, **options)
+    end
+
+    private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,
+                        user_data = 0u64,
                         fixed_file = false, io_drain = false, io_link = false, io_hardlink = false, async = false)
       flags = LibUring::SQE_FLAG::None
       flags |= LibUring::SQE_FLAG::FIXED_FILE if fixed_file
@@ -67,9 +81,9 @@ module IOR
         sqe.value.fd = io_or_index.is_a?(Int32) ? io_or_index : io_or_index.fd
       end
       sqe.value.off_or_addr2.off = offset
-      sqe.value.addr = addr.address if addr
+      sqe.value.addr = addr if addr
       sqe.value.len = length
-      sqe.value.event_flags.rw_flags = 0
+      sqe.value.event_flags.rw_flags = 0 # TODO
       sqe.value.user_data = user_data
       sqe.value.buf_or_pad.pad2[0] = sqe.value.buf_or_pad.pad2[1] = sqe.value.buf_or_pad.pad2[2] = 0
       sqe

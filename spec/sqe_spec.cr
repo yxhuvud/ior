@@ -129,6 +129,109 @@ describe IOR::SQE do
         cqe = ring.wait
         cqe.user_data.should eq 4711
         cqe.timed_out?.should be_false
+        ring.seen cqe
+      end
+    end
+  end
+
+  describe "#link_timeout" do
+    it "timeouts op if op takes a long time." do
+      time = 0.005.seconds
+      left, right = UNIXSocket.pair
+      timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
+      IOR::IOUring.new do |ring|
+        ring.sqe.poll_add(left, :POLLIN, user_data: 4711, io_link: true)
+        ring.sqe.link_timeout(pointerof(timespec), user_data: 13)
+        ring.submit
+        ring.peek.should be_nil
+
+        cqe = ring.wait
+        cqe.user_data.should eq 13
+        cqe.timed_out?.should be_true
+        cqe.canceled?.should be_false
+        ring.seen cqe
+
+        cqe = ring.wait
+        cqe.user_data.should eq 4711
+        cqe.timed_out?.should be_false
+        cqe.canceled?.should be_true
+        ring.seen cqe
+      end
+    end
+
+    it "lets op finish if it can within time." do
+      time = 5.seconds
+      left, right = UNIXSocket.pair
+      timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
+      buf = Slice(UInt8).new(32) { 0u8 }
+      header = msgheader(iovec(buf))
+      IOR::IOUring.new do |ring|
+        ring.sqe.recvmsg(left, pointerof(header), 0, user_data: 4711, io_link: true)
+        ring.sqe.link_timeout(pointerof(timespec), user_data: 13)
+        ring.submit
+
+        cqe = ring.wait
+        cqe.user_data.should eq 4711
+        cqe.timed_out?.should be_false
+        cqe.canceled?.should be_false
+        ring.seen cqe
+
+        cqe = ring.wait
+        cqe.user_data.should eq 13
+        cqe.timed_out?.should be_false
+        cqe.canceled?.should be_true
+        ring.seen cqe
+      end
+    end
+  end
+
+  describe "#timeout_remove" do
+    it "removes a timeout" do
+      time = 5.days
+      timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
+      IOR::IOUring.new do |ring|
+        ring.sqe.timeout(pointerof(timespec), user_data: 4711)
+        ring.submit
+        ring.sqe.timeout_remove(4711, user_data: 13)
+        ring.submit
+
+        # The order between this and the following group is arbitrary,
+        # but consistent for this particular test. Don't rely on it.
+        cqe = ring.wait
+        cqe.user_data.should eq 4711
+        cqe.error_message.should eq "Operation canceled"
+        cqe.timed_out?.should be_false
+        ring.seen cqe
+
+        cqe = ring.wait
+        cqe.user_data.should eq 13
+        cqe.res.should eq 0
+      end
+    end
+  end
+
+  describe "#async_cancel" do
+    it "cancels" do
+      left, right = UNIXSocket.pair
+      IOR::IOUring.new do |ring|
+        ring.sqe.poll_add(left, :POLLIN, user_data: 4711)
+        ring.submit
+        cqe = ring.peek.should be_nil
+
+        ring.sqe.async_cancel(4711, user_data: 13)
+        ring.submit
+
+        # The order between this and the following group is arbitrary,
+        # but consistent for this particular test. Don't rely on it.
+        cqe = ring.wait
+        cqe.user_data.should eq 13
+        cqe.res.should eq 0
+        ring.seen cqe
+
+        cqe = ring.wait
+        cqe.error_message.should eq "Operation canceled"
+        cqe.canceled?.should be_true
+        cqe.user_data.should eq 4711
       end
     end
   end

@@ -42,5 +42,9 @@ module IOR
     def timed_out?
       (-res) == 62
     end
+
+    def canceled?
+      (-res) == 125
+    end
   end
 end
