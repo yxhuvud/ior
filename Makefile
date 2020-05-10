@@ -5,7 +5,7 @@ all : 	build run
 run  :
 	rm -rf .test
 	mkdir -p .test
-	crystal spec -Dpreview_mt
+	crystal spec -Dpreview_mt --error-trace
 
 build :
 	mkdir -p build
