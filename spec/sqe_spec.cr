@@ -1,6 +1,13 @@
 require "./spec_helper"
 require "socket"
 
+# stolen from crystal repo, spec_helper.cr
+def unused_local_port
+  TCPServer.open("::", 0) do |server|
+    server.local_address.port
+  end
+end
+
 describe IOR::SQE do
   describe "#readv" do
     it "reads into supplied buffer" do
@@ -140,7 +147,7 @@ describe IOR::SQE do
       left, right = UNIXSocket.pair
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new do |ring|
-        ring.sqe.poll_add(left, :POLLIN, user_data: 4711, io_link: true)
+        ring.sqe.poll_add(left, user_data: 4711, io_link: true)
         ring.sqe.link_timeout(pointerof(timespec), user_data: 13)
         ring.submit
         ring.peek.should be_nil
@@ -214,7 +221,7 @@ describe IOR::SQE do
     it "cancels" do
       left, right = UNIXSocket.pair
       IOR::IOUring.new do |ring|
-        ring.sqe.poll_add(left, :POLLIN, user_data: 4711)
+        ring.sqe.poll_add(left, user_data: 4711)
         ring.submit
         cqe = ring.peek.should be_nil
 
@@ -232,6 +239,67 @@ describe IOR::SQE do
         cqe.error_message.should eq "Operation canceled"
         cqe.canceled?.should be_true
         cqe.user_data.should eq 4711
+      end
+    end
+  end
+
+  describe "#accept" do
+    it "accepts incoming connections" do
+      client_done = Channel(Nil).new
+      server = Socket.new(Socket::Family::INET, Socket::Type::STREAM, Socket::Protocol::TCP)
+      begin
+        port = unused_local_port
+        server.bind("0.0.0.0", port)
+        server.listen
+
+        spawn do
+          TCPSocket.new("127.0.0.1", port).close
+        ensure
+          client_done.send nil
+        end
+        # Make certain the above executes
+        Fiber.yield
+
+        IOR::IOUring.new do |ring|
+          loop do
+            ring.sqe.accept(server.fd, user_data: 4711)
+            ring.submit
+            cqe = ring.wait
+            if cqe.eagain?
+              ring.seen cqe
+              next
+            end
+
+            (cqe.res > 0).should be_true
+            sock = Socket.new(cqe.res, server.family, server.type, server.protocol, server.blocking)
+            ring.seen cqe
+            sock.close
+            break
+          end
+        end
+      ensure
+        server.close
+        client_done.receive
+      end
+    end
+  end
+
+  describe "#connect" do
+    it "connects" do
+      port = unused_local_port
+      TCPServer.open("127.0.0.1", port) do |server|
+        Socket::Addrinfo.tcp("127.0.0.1", port,) do |addrinfo|
+          fd = LibC.socket(addrinfo.family, addrinfo.type, addrinfo.protocol)
+          IOR::IOUring.new do |ring|
+            ring.sqe.connect(fd, addrinfo, user_data: 4711)
+            ring.submit
+            cqe = ring.wait
+            cqe.error_message.should eq "Success"
+            server.accept
+            sock = TCPSocket.new(fd: fd, family: addrinfo.family)
+            sock.close
+          end
+        end
       end
     end
   end

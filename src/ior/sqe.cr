@@ -50,6 +50,8 @@ module IOR
       end
     end
 
+    # Note: Requires the preceding operation in the same submit to
+    # have the io_link flag set.
     def link_timeout(time : LibC::Timespec*, relative = true, **options)
       prep_rw(LibUring::Op::LINK_TIMEOUT, nil, time.address, 1, 0, **options).tap do |sqe|
         sqe.value.event_flags.timeout_flags = relative ? 0 : 1
@@ -62,6 +64,15 @@ module IOR
 
     def async_cancel(cancel_userdata : UInt64, **options)
       prep_rw(LibUring::Op::ASYNC_CANCEL, nil, cancel_userdata, 0, 0, **options)
+    end
+
+    # TODO: Support passing sockaddr, socklen and flags.
+    def accept(fd, **options)
+      prep_rw(LibUring::Op::ACCEPT, fd, nil, 0, 0, **options)
+    end
+
+    def connect(fd, addr : Socket::Addrinfo, **options)
+      prep_rw(LibUring::Op::CONNECT, fd, addr.to_unsafe.address, 0, addr.size, **options)
     end
 
     private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,
