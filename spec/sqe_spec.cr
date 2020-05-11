@@ -303,4 +303,19 @@ describe IOR::SQE do
       end
     end
   end
+
+  describe "#fallocate" do
+    it "adjusts the size of a file" do
+      File.write ".test/fallocate", "test"
+      File.size(".test/fallocate").should eq 4
+      File.open ".test/fallocate", "w" do |f|
+        IOR::IOUring.new do |ring|
+          ring.sqe.fallocate f.fd, 0, 1024
+          ring.submit
+          cqe = ring.wait
+        end
+      end
+      File.size(".test/fallocate").should eq 1024
+    end
+  end
 end

@@ -75,6 +75,10 @@ module IOR
       prep_rw(LibUring::Op::CONNECT, fd, addr.to_unsafe.address, 0, addr.size, **options)
     end
 
+    def fallocate(fd, offset, length, mode = 0, **options)
+      prep_rw(LibUring::Op::FALLOCATE, fd, length.to_u64, mode, offset, **options)
+    end
+
     private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,
                         user_data = 0u64,
                         fixed_file = false, io_drain = false, io_link = false, io_hardlink = false, async = false)
