@@ -33,6 +33,9 @@ lib LibUring
     RECV
     OPENAT2
     EPOLL_CTL
+    SPLICE
+    PROVIDE_BUFFERS
+    REMOVE_BUFFERS
   end
 
   @[Flags]
@@ -42,6 +45,7 @@ lib LibUring
     IO_LINK
     IO_HARDLINK
     ASYNC
+    BUFFER_SELECT
   end
 
   @[Flags]
@@ -50,6 +54,8 @@ lib LibUring
     SQPOLL
     SQ_AFF
     CQSIZE
+    CLAMP
+    ATTACH_WQ
   end
 
   struct IOUringSQ
@@ -81,6 +87,11 @@ lib LibUring
     msg_flags : UInt32
     timeout_flags : UInt32
     accept_flags : UInt32
+    cancel_flags : UInt32
+    open_flags : UInt32
+    statx_flags : UInt32
+    fadvice_flags : UInt32
+    splice_flags : UInt32
   end
 
   union BufOrPad
