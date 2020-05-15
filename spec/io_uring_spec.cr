@@ -88,6 +88,21 @@ describe IOR::IOUring do
     end
   end
 
+  describe "#submit_and_wait" do
+    it "waits until completion" do
+      IOR::IOUring.new(size: 1) do |ring|
+        ring.sqe.nop user_data: 123
+        ring.submit_and_wait
+
+        ring.peek do |cqe|
+          cqe.ring_error?.should be_false
+          cqe.cqe_error?.should be_false
+          cqe.user_data.should eq 123
+        end
+      end
+    end
+  end
+
   describe "#peek" do
     it "does soething" do
       time = 0.002.seconds

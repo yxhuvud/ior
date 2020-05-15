@@ -164,6 +164,7 @@ lib LibUring
   fun io_uring_queue_init(entries : LibC::UInt, ring : IOUring*, flags : SETUP_FLAG) : LibC::Int
   fun io_uring_get_sqe(ring : IOUring*) : IOUringSQE*
   fun io_uring_submit(IOUring*) : LibC::Int
+  fun io_uring_submit_and_wait(IOUring*, nr : LibC::UInt) : LibC::Int
   fun io_uring_queue_exit(IOUring*) : Void
 
   fun io_uring_register_files(ring : IOUring*, files : LibC::Int*, nr_files : LibC::UInt) : LibC::Int

@@ -105,6 +105,18 @@ module IOR
       cqe
     end
 
+    # Submit events to kernel, and wait for nr responses. Saves a
+    # syscall compared to submit followed by wait. Returns submission
+    # count so user will still need a call to wait to actually get to
+    # the result. 
+    def submit_and_wait(nr = 1)
+      res = LibUring.io_uring_submit_and_wait(ring, nr)
+      if res < 0
+        raise "Submit #{err res}"
+      end
+      res
+    end
+
     # Returns next event if one is available.
     def peek
       cqe = wait_cqe(0)
