@@ -9,6 +9,27 @@ def unused_local_port
 end
 
 describe IOR::SQE do
+  describe "#read" do
+    it "reads into supplied buffer" do
+      content = "This is content for read"
+      File.write ".test/read", content
+
+      IOR::IOUring.new do |ring|
+        File.open(".test/read") do |fh|
+          buf = Slice(UInt8).new(32) { 0u8 }
+
+          ring.sqe.read(fh, buf, user_data: 4711)
+          ring.submit_and_wait
+          cqe = ring.wait
+
+          cqe.user_data.should eq 4711
+          cqe.res.should eq content.size
+          String.new(buf[0, cqe.res]).should eq content
+        end
+      end
+    end
+  end
+
   describe "#readv" do
     it "reads into supplied buffer" do
       content = "This is content for readv"

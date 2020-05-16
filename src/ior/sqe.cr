@@ -11,6 +11,10 @@ module IOR
       prep_rw(LibUring::Op::NOP, nil, nil, 0, 0, **options)
     end
 
+    def read(fd, buf, **options)
+      prep_rw(LibUring::Op::READ, fd, buf.to_unsafe.address, buf.size, 0, **options)
+    end
+
     # TODO: Support using current position (ie offset -1), based on IORING_FEAT_RW_CUR_POS
     def readv(fd, iovecs, offset, **options)
       prep_rw(LibUring::Op::READV, fd, iovecs.to_unsafe.address, iovecs.size, offset, **options)
