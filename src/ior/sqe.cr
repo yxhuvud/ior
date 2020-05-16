@@ -79,6 +79,28 @@ module IOR
       prep_rw(LibUring::Op::FALLOCATE, fd, length.to_u64, mode, offset, **options)
     end
 
+    # Absolute path, or relative to CWD
+    def openat(pathname, relative_to_cwd = false, **options)
+      if relative_to_cwd
+        openat(LibUring::AT_FDCWD, pathname, **options)
+      else
+        openat(nil, pathname, **options)
+      end
+    end
+
+    def openat(fd, pathname, flags : String, **options)
+      oflags = ::Crystal::System::File.ior_open_flags(flags)
+      openat(fd, pathname, oflags, **options)
+    end
+
+    def openat(fd, pathname : String, flags : UInt32 = 0 , mode : LibC::ModeT = 0, **options)
+      prep_rw(LibUring::Op::OPENAT, fd, pathname.to_unsafe.address, mode, 0, **options).tap do |sqe|
+        sqe.value.event_flags.open_flags = flags
+      end
+    end
+
+    # TODO: openat2: Ehh. Whenever necessary.
+
     private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,
                         user_data = 0u64,
                         fixed_file = false, io_drain = false, io_link = false, io_hardlink = false, async = false)
@@ -102,6 +124,14 @@ module IOR
       sqe.value.user_data = user_data
       sqe.value.buf_or_pad.pad2[0] = sqe.value.buf_or_pad.pad2[1] = sqe.value.buf_or_pad.pad2[2] = 0
       sqe
+    end
+
+    # ewww, but I couldn't figure out a good way to access the method
+    # and I'd rather not copy the implementation.
+    module ::Crystal::System::File
+      def self.ior_open_flags(mode)
+        (open_flag(mode) | LibC::O_CLOEXEC ).to_u32
+      end
     end
   end
 end

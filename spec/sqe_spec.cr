@@ -292,7 +292,7 @@ describe IOR::SQE do
           fd = LibC.socket(addrinfo.family, addrinfo.type, addrinfo.protocol)
           IOR::IOUring.new do |ring|
             ring.sqe.connect(fd, addrinfo, user_data: 4711)
-            ring.submit
+            ring.submit_and_wait
             cqe = ring.wait
             cqe.error_message.should eq "Success"
             server.accept
@@ -311,11 +311,33 @@ describe IOR::SQE do
       File.open ".test/fallocate", "w" do |f|
         IOR::IOUring.new do |ring|
           ring.sqe.fallocate f.fd, 0, 1024
-          ring.submit
+          ring.submit_and_wait
           cqe = ring.wait
         end
       end
       File.size(".test/fallocate").should eq 1024
     end
+  end
+
+  describe "#openat" do
+    it "Can open files" do
+      File.write ".test/openat", "test"
+      IOR::IOUring.new do |ring|
+        ring.sqe.openat ".test/openat", relative_to_cwd: true, flags: "r"
+        ring.submit_and_wait
+        cqe = ring.wait
+        cqe.success?.should eq true
+        fd = cqe.res
+        # File doesn't have a convenient way to initialize from a file
+        # descriptor :/
+        file = IO::FileDescriptor.new fd
+        buf = Slice(UInt8).new(4) { 0u8 }
+        file.read(buf)
+        String.new(buf).should eq "test"
+      end
+    end
+
+    # TODO: Test file creation
+    # TODO: Test file relative to directory
   end
 end

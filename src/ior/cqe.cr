@@ -27,12 +27,16 @@ module IOR
       String.new(LibC.strerror(-(ring_error? ? @res : res)))
     end
 
+    def success?
+      !ring_error? && !cqe_error?
+    end
+
     def ring_error?
       @res < 0
     end
 
     def cqe_error?
-      -res < 0
+      res < 0
     end
 
     def eagain?
