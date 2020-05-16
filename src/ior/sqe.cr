@@ -113,6 +113,10 @@ module IOR
       prep_rw(LibUring::Op::CLOSE, fd, 0, 0, 0, **options)
     end
 
+    def files_update(files : Array(Int32), off = 0, **options)
+      prep_rw(LibUring::Op::FILES_UPDATE, -1, files.to_unsafe.address, files.size, off, **options)
+    end
+
 
     private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,
                         user_data = 0u64,

@@ -392,4 +392,34 @@ describe IOR::SQE do
       end
     end
   end
+
+  describe "#files_update" do
+    it "can update files" do
+      content = "This is content for reg"
+      File.write ".test/files_update1", content
+      File.write ".test/files_update2", content * 2
+
+      IOR::IOUring.new do |ring|
+        fh1 = File.open(".test/files_update1")
+        fh2 = File.open(".test/files_update2")
+        ring.register_files [fh1]
+        ring.sqe.files_update([fh2.fd], 0)
+
+        ring.submit_and_wait
+        cqe = ring.wait
+        cqe.success?.should be_true
+        ring.seen cqe
+
+        buf = Slice(UInt8).new(content.size * 2) { 0u8 }
+        ring.sqe.readv(0, iovec(buf), 0, user_data: 4711, fixed_file: true)
+        ring.submit.should eq 1
+
+        ring.wait do |cqe|
+          cqe.user_data.should eq 4711
+          cqe.res.should eq content.size * 2
+          String.new(buf[0, cqe.res]).should eq content * 2
+        end
+      end
+    end
+  end
 end
