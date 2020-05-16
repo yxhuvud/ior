@@ -99,6 +99,10 @@ module IOR
       end
     end
 
+    def close(fd, **options)
+      prep_rw(LibUring::Op::CLOSE, fd, 0, 0, 0, **options)
+    end
+
     # TODO: openat2: Ehh. Whenever necessary.
 
     private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,

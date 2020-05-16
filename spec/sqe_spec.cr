@@ -334,10 +334,23 @@ describe IOR::SQE do
         buf = Slice(UInt8).new(4) { 0u8 }
         file.read(buf)
         String.new(buf).should eq "test"
+        ring.seen cqe
       end
     end
 
     # TODO: Test file creation
     # TODO: Test file relative to directory
+  end
+
+  describe "#close" do
+    it "works" do
+      fh = File.open ".test/close", "w"
+      IOR::IOUring.new do |ring|
+        ring.sqe.close fh.fd
+        ring.submit_and_wait
+        cqe = ring.wait
+        cqe.success?.should eq true
+      end
+    end
   end
 end
