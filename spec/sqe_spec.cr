@@ -309,7 +309,7 @@ describe IOR::SQE do
     it "connects" do
       port = unused_local_port
       TCPServer.open("127.0.0.1", port) do |server|
-        Socket::Addrinfo.tcp("127.0.0.1", port,) do |addrinfo|
+        Socket::Addrinfo.tcp("127.0.0.1", port) do |addrinfo|
           fd = LibC.socket(addrinfo.family, addrinfo.type, addrinfo.protocol)
           IOR::IOUring.new do |ring|
             ring.sqe.connect(fd, addrinfo, user_data: 4711)

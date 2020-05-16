@@ -97,17 +97,18 @@ module IOR
       openat(fd, pathname, oflags, **options)
     end
 
-    def openat(fd, pathname : String, flags : UInt32 = 0 , mode : LibC::ModeT = 0, **options)
+    def openat(fd, pathname : String, flags : UInt32 = 0, mode : LibC::ModeT = 0, **options)
       prep_rw(LibUring::Op::OPENAT, fd, pathname.to_unsafe.address, mode, 0, **options).tap do |sqe|
         sqe.value.event_flags.open_flags = flags
       end
     end
 
+    # TODO: OPENAT2
+
     def close(fd, **options)
       prep_rw(LibUring::Op::CLOSE, fd, 0, 0, 0, **options)
     end
 
-    # TODO: openat2: Ehh. Whenever necessary.
 
     private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,
                         user_data = 0u64,
@@ -138,7 +139,7 @@ module IOR
     # and I'd rather not copy the implementation.
     module ::Crystal::System::File
       def self.ior_open_flags(mode)
-        (open_flag(mode) | LibC::O_CLOEXEC ).to_u32
+        (open_flag(mode) | LibC::O_CLOEXEC).to_u32
       end
     end
   end
