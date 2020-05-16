@@ -51,6 +51,24 @@ describe IOR::SQE do
     end
   end
 
+  describe "#write" do
+    it "writes into file" do
+      content = "This is content for write"
+
+      IOR::IOUring.new do |ring|
+        File.open(".test/write", "w") do |fh|
+          ring.sqe.write(fh, content, user_data: 4711)
+          ring.submit.should eq 1
+          cqe = ring.wait
+
+          cqe.user_data.should eq 4711
+          cqe.res.should eq content.size
+          File.read(".test/write").should eq content
+        end
+      end
+    end
+  end
+
   describe "#writev" do
     it "writes into file" do
       content = "This is content for writev"

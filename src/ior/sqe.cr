@@ -20,6 +20,10 @@ module IOR
       prep_rw(LibUring::Op::READV, fd, iovecs.to_unsafe.address, iovecs.size, offset, **options)
     end
 
+    def write(fd, buf, **options)
+      prep_rw(LibUring::Op::WRITE, fd, buf.to_unsafe.address, buf.size, 0, **options)
+    end
+
     def writev(fd, iovecs, offset, **options)
       prep_rw(LibUring::Op::WRITEV, fd, iovecs.to_unsafe.address, iovecs.size, offset, **options)
     end
