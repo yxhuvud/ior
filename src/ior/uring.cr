@@ -10,7 +10,7 @@ module IOR
     private property closed : Bool
     private property registered_files : Bool
 
-    def initialize(size = 32, sq_poll = false)
+    def initialize(size = 32, sq_poll = false, io_poll = false)
       @closed = false
 
       flags = LibUring::SETUP_FLAG::None
@@ -18,6 +18,7 @@ module IOR
       # initing using the params object. Do note that sqpoll requires
       # using only registred files and heightened privileges.
       flags |= LibUring::SETUP_FLAG::SQPOLL if sq_poll
+      flags |= LibUring::SETUP_FLAG::IOPOLL if io_poll
 
       @ring = LibUring::IOUring.new
       @registered_files = false
