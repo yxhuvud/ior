@@ -20,11 +20,11 @@ describe IOR::SQE do
 
           ring.sqe.read(fh, buf, user_data: 4711)
           ring.submit_and_wait
-          cqe = ring.wait
-
-          cqe.user_data.should eq 4711
-          cqe.res.should eq content.size
-          String.new(buf[0, cqe.res]).should eq content
+          ring.peek do |cqe|
+            cqe.user_data.should eq 4711
+            cqe.res.should eq content.size
+            String.new(buf[0, cqe.res]).should eq content
+          end
         end
       end
     end
@@ -352,6 +352,8 @@ describe IOR::SQE do
           ring.sqe.fallocate f.fd, 0, 1024
           ring.submit_and_wait
           cqe = ring.wait
+          cqe.success?.should be_true
+          ring.seen cqe
         end
       end
       File.size(".test/fallocate").should eq 1024

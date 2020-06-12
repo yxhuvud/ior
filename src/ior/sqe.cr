@@ -117,10 +117,13 @@ module IOR
       prep_rw(LibUring::Op::FILES_UPDATE, -1, files.to_unsafe.address, files.size, off, **options)
     end
 
-
     private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,
                         user_data = 0u64,
-                        fixed_file = false, io_drain = false, io_link = false, io_hardlink = false, async = false)
+                        fixed_file = false,
+                        io_drain = false,
+                        io_link = false,
+                        io_hardlink = false,
+                        async = false)
       flags = LibUring::SQE_FLAG::None
       flags |= LibUring::SQE_FLAG::FIXED_FILE if fixed_file
       flags |= LibUring::SQE_FLAG::IO_DRAIN if io_drain
@@ -137,7 +140,6 @@ module IOR
       sqe.value.off_or_addr2.off = offset
       sqe.value.addr = addr if addr
       sqe.value.len = length
-      sqe.value.event_flags.rw_flags = 0 # TODO
       sqe.value.user_data = user_data
       sqe.value.buf_or_pad.pad2[0] = sqe.value.buf_or_pad.pad2[1] = sqe.value.buf_or_pad.pad2[2] = 0
       sqe
