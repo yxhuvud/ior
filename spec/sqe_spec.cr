@@ -220,6 +220,7 @@ describe IOR::SQE do
         ring.sqe.recvmsg(left, pointerof(header), 0, user_data: 4711, io_link: true)
         ring.sqe.link_timeout(pointerof(timespec), user_data: 13)
         ring.submit
+        right.write buf
 
         cqe = ring.wait
         cqe.user_data.should eq 4711
