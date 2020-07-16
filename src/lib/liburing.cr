@@ -33,9 +33,10 @@ lib LibUring
     RECV
     OPENAT2
     EPOLL_CTL
-    SPLICE
-    PROVIDE_BUFFERS
-    REMOVE_BUFFERS
+    SPLICE          # ^Linux 5.7
+    PROVIDE_BUFFERS # ?? Not documented in man files
+    REMOVE_BUFFERS  # ??
+    IORING_OP_TEE
   end
 
   @[Flags]
