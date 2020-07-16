@@ -191,17 +191,22 @@ describe IOR::SQE do
         ring.submit
         ring.peek.should be_nil
 
-        cqe = ring.wait
-        cqe.user_data.should eq 13
-        cqe.timed_out?.should be_true
-        cqe.canceled?.should be_false
-        ring.seen cqe
+        # Different Linux versions return these in different order.
+        seen = Array(UInt64).new(2) do
+          cqe = ring.wait
+          case cqe.user_data
+          when 4711
+            cqe.timed_out?.should be_false
+            cqe.canceled?.should be_true
+          when 13
+            cqe.timed_out?.should be_true
+            cqe.canceled?.should be_false
+          end
+          ring.seen cqe
+          cqe.user_data
+        end
 
-        cqe = ring.wait
-        cqe.user_data.should eq 4711
-        cqe.timed_out?.should be_false
-        cqe.canceled?.should be_true
-        ring.seen cqe
+        seen.sort.should eq [13, 4711]
       end
     end
 
@@ -267,17 +272,21 @@ describe IOR::SQE do
         ring.sqe.async_cancel(4711, user_data: 13)
         ring.submit
 
-        # The order between this and the following group is arbitrary,
-        # but consistent for this particular test. Don't rely on it.
-        cqe = ring.wait
-        cqe.user_data.should eq 13
-        cqe.res.should eq 0
-        ring.seen cqe
+        # Different Linux versions return these in different order.
+        seen = Array(UInt64).new(2) do
+          cqe = ring.wait
+          case cqe.user_data
+          when 4711
+            cqe.error_message.should eq "Operation canceled"
+            cqe.canceled?.should be_true
+          when 13
+            cqe.res.should eq 0
+          end
+          ring.seen cqe
+          cqe.user_data
+        end
 
-        cqe = ring.wait
-        cqe.error_message.should eq "Operation canceled"
-        cqe.canceled?.should be_true
-        cqe.user_data.should eq 4711
+        seen.sort.should eq [13, 4711]
       end
     end
   end
