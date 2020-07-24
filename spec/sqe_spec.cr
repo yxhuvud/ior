@@ -126,6 +126,23 @@ describe IOR::SQE do
     end
   end
 
+  describe "#send" do
+    it "sends on socket" do
+      str = "hello world!"
+      left, right = UNIXSocket.pair
+      IOR::IOUring.new do |ring|
+        ring.sqe.send(left, str, user_data: 4711)
+        ring.submit.should eq 1
+        cqe = ring.wait
+        left.close
+
+        cqe.user_data.should eq 4711
+        cqe.res.should eq str.size
+        right.gets_to_end.should eq str
+      end
+    end
+  end
+
   describe "#sendmsg" do
     it "sends on socket" do
       str = "hello world!"
