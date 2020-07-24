@@ -58,6 +58,15 @@ module IOR
       end
     end
 
+    def splice(fd_in, off_in : UInt64?, fd_out, off_out : UInt64?, size : Int32, flags = 0, **options)
+      off_in ||= UInt64::MAX
+      off_out ||= UInt64::MAX
+      prep_rw(LibUring::Op::SPLICE, fd_out, off_in, size, off_out, **options).tap do |sqe|
+        sqe.value.buf_or_pad.misc.splice_fd_in = fd_in.is_a?(Int32) ? fd_in : fd_in.fd
+        sqe.value.event_flags.splice_flags = flags
+      end
+    end
+
     def timeout(time : LibC::Timespec*, relative = true, wait_nr = 1, **options)
       prep_rw(LibUring::Op::TIMEOUT, nil, time.address, 1, wait_nr, **options).tap do |sqe|
         sqe.value.event_flags.timeout_flags = relative ? 0 : 1

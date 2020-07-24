@@ -106,8 +106,19 @@ lib LibUring
     splice_flags : UInt32
   end
 
-  union BufOrPad
+  union SQEBuf
     buf_index : UInt16
+    buf_group : UInt16
+  end
+
+  struct BufMisc
+    buf : SQEBuf
+    personality : UInt16
+    splice_fd_in : Int32
+  end
+
+  union BufOrPad
+    misc : BufMisc
     pad2 : UInt64[3]
   end
 
@@ -117,6 +128,8 @@ lib LibUring
     ioprio : UInt16
     fd : Int32
     off_or_addr2 : OffOrAddr2
+    # Addr is strictly speaking a union between addr and
+    # splice_off_in, but as both are UI64, lets avoid cluttering too much..
     addr : UInt64
     len : UInt32
     event_flags : EventFlags

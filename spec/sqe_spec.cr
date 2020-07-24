@@ -453,4 +453,25 @@ describe IOR::SQE do
       end
     end
   end
+
+  describe "#splice" do
+    it "copies data from one fd to another" do
+      File.write ".test/splice1", "hello world"
+      fh = File.open ".test/splice1"
+      p_out, p_in = IO.pipe
+
+      IOR::IOUring.new do |ring|
+        ring.sqe.splice(fh, 6, p_in, nil, 5)
+        ring.submit_and_wait
+
+        cqe = ring.wait
+        cqe.success?.should be_true
+        ring.seen cqe
+
+        buf = Slice(UInt8).new(5)
+        p_out.read(buf)
+        String.new(buf).should eq "world"
+      end
+    end
+  end
 end
