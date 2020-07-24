@@ -3,7 +3,33 @@ require "socket"
 
 describe IOR::IOUring do
   describe ".new" do
-    pending
+    pending "sqpoll"
+    pending "io_poll"
+
+    context "reusing ring worker" do
+      it "#initialize" do
+        original = IOR::IOUring.new
+        reusing_ring = IOR::IOUring.new worker: original
+
+        original.fd.should_not eq reusing_ring.fd
+
+        original.sqe.nop user_data: 17
+        reusing_ring.sqe.nop user_data: 4711
+
+        original.submit_and_wait.should eq 1
+        reusing_ring.submit_and_wait.should eq 1
+
+        cqe = original.wait
+        cqe.user_data.should eq 17
+        original.seen cqe
+        original.peek.should eq nil
+
+        cqe = reusing_ring.wait
+        cqe.user_data.should eq 4711
+        reusing_ring.seen cqe
+        reusing_ring.peek.should eq nil
+      end
+    end
   end
 
   describe "registering files" do

@@ -50,13 +50,24 @@ lib LibUring
   end
 
   @[Flags]
-  enum SETUP_FLAG : LibC::UInt
+  enum SETUP_FLAG : UInt32
     IOPOLL
     SQPOLL
     SQ_AFF
     CQSIZE
     CLAMP
     ATTACH_WQ
+  end
+
+  @[Flags]
+  enum FEATURES : UInt32
+    SINGLE_MMAP
+    NODROP
+    SUBMIT_STABLE
+    RW_CUR_POS
+    CUR_PERSONALITY
+    FAST_POLL
+    POLL_32BITS
   end
 
   struct IOUringSQ
@@ -102,7 +113,7 @@ lib LibUring
 
   struct IOUringSQE
     opcode : Op
-    flags : UInt8
+    flags : SQE_FLAG
     ioprio : UInt16
     fd : Int32
     off_or_addr2 : OffOrAddr2
@@ -124,6 +135,7 @@ lib LibUring
     ktail : LibC::UInt*
     kring_mask : LibC::UInt*
     kring_entries : LibC::UInt*
+    kflags : LibC::UInt*
     koverflow : LibC::UInt*
     cqes : IOUringCQE*
 
@@ -157,17 +169,20 @@ lib LibUring
     ring_entries : UInt32
     overflow : UInt32
     cqes : UInt32
-    resv : UInt64[2]
+    flags : UInt32
+    resv1 : UInt32
+    resv2 : UInt64
   end
 
   struct IOUringParams
     sq_entries : UInt32
     cq_entries : UInt32
-    flags : UInt32
+    flags : SETUP_FLAG
     sq_thread_cpu : UInt32
     sq_thread_idle : UInt32
-    features : UInt32
-    resv : UInt32[4]
+    features : FEATURES
+    wq_fd : UInt32
+    resv : UInt32[3]
     sq_off : IOSQRingOffsets
     cq_off : IOCQRingOffsets
   end

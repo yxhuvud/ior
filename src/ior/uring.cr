@@ -10,19 +10,32 @@ module IOR
     private property closed : Bool
     private property registered_files : Bool
 
-    def initialize(size = 32, sq_poll = false, io_poll = false)
+    def initialize(size = 32, sq_poll = false, io_poll = false, worker : IOUring? = nil)
       @closed = false
+      @registered_files = false
 
       flags = LibUring::SETUP_FLAG::None
       # Other flags not currently relevant as we have no support of
       # initing using the params object. Do note that sqpoll requires
-      # using only registred files and heightened privileges.
+      # using only registered files and heightened privileges.
       flags |= LibUring::SETUP_FLAG::SQPOLL if sq_poll
       flags |= LibUring::SETUP_FLAG::IOPOLL if io_poll
 
       @ring = LibUring::IOUring.new
-      @registered_files = false
-      res = LibUring.io_uring_queue_init(size, ring, flags)
+
+      params =
+        if worker
+          LibUring::IOUringParams.new(
+            flags: flags | LibUring::SETUP_FLAG::ATTACH_WQ,
+            wq_fd: worker.fd
+          )
+        else
+          LibUring::IOUringParams.new(
+            flags: flags,
+          )
+        end
+      res = LibUring.io_uring_queue_init_params(size, ring, pointerof(params))
+
       unless res == 0
         raise "Init: #{err(res)}"
       end
@@ -109,7 +122,7 @@ module IOR
     # Submit events to kernel, and wait for nr responses. Saves a
     # syscall compared to submit followed by wait. Returns submission
     # count so user will still need a call to wait to actually get to
-    # the result. 
+    # the result.
     def submit_and_wait(nr = 1)
       res = LibUring.io_uring_submit_and_wait(ring, nr)
       if res < 0
@@ -165,6 +178,10 @@ module IOR
 
     def sqe
       SQE.new(LibUring.io_uring_get_sqe(ring))
+    end
+
+    def fd
+      ring.value.ring_fd
     end
 
     private def wait_cqe(nr)
