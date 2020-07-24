@@ -40,13 +40,13 @@ module IOR
       end
     end
 
-    def sendmsg(fd, msg : LibC::MsgHeader*, flags, **options)
+    def sendmsg(fd, msg : LibC::MsgHeader*, flags = 0, **options)
       prep_rw(LibUring::Op::SENDMSG, fd, msg.address, 1, 0, **options).tap do |sqe|
         sqe.value.event_flags.msg_flags = flags
       end
     end
 
-    def recvmsg(fd, msg : LibC::MsgHeader*, flags, **options)
+    def recvmsg(fd, msg : LibC::MsgHeader*, flags = 0, **options)
       prep_rw(LibUring::Op::RECVMSG, fd, msg.address, 1, 0, **options).tap do |sqe|
         sqe.value.event_flags.msg_flags = flags
       end
