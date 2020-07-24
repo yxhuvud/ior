@@ -40,6 +40,9 @@ module IOR
       end
     end
 
+    def epoll_ctl
+    end
+
     def send(fd, buf, size = buf.size, flags = 0, **options)
       prep_rw(LibUring::Op::SEND, fd, buf.to_unsafe.address, size, 0, **options).tap do |sqe|
         sqe.value.event_flags.msg_flags = flags
