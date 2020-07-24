@@ -87,6 +87,25 @@ describe IOR::SQE do
     end
   end
 
+  describe "#recv" do
+    it "receives on socket" do
+      str = "hello world!"
+      left, right = UNIXSocket.pair
+      IOR::IOUring.new do |ring|
+        buf = Slice(UInt8).new(32) { 0u8 }
+
+        right.write str.to_slice
+        ring.sqe.recv(left, buf, user_data: 4711)
+        ring.submit.should eq 1
+        cqe = ring.wait
+
+        cqe.user_data.should eq 4711
+        cqe.res.should eq str.size
+        String.new(buf[0, cqe.res]).should eq str
+      end
+    end
+  end
+
   describe "#recvmsg" do
     it "receives on socket" do
       str = "hello world!"
