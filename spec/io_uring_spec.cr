@@ -19,15 +19,15 @@ describe IOR::IOUring do
         original.submit_and_wait.should eq 1
         reusing_ring.submit_and_wait.should eq 1
 
-        cqe = original.wait
-        cqe.user_data.should eq 17
-        original.seen cqe
-        original.peek.should eq nil
-
         cqe = reusing_ring.wait
         cqe.user_data.should eq 4711
         reusing_ring.seen cqe
         reusing_ring.peek.should eq nil
+
+        cqe = original.wait
+        cqe.user_data.should eq 17
+        original.seen cqe
+        original.peek.should eq nil
       end
     end
   end
