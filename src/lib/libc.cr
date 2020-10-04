@@ -8,7 +8,7 @@ lib LibC
   end
 
   struct MsgHeader
-    name : LibC::Sockaddr*
+    name : LibC::SockaddrStorage*
     namelen : LibC::Int
     iov : IOVec*
     iovlen : LibC::SizeT
