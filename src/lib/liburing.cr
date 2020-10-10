@@ -84,6 +84,8 @@ lib LibUring
 
     ring_sz : LibC::SizeT
     ring_ptr : Void*
+
+    pad : LibC::UInt[4]
   end
 
   union OffOrAddr2
@@ -154,6 +156,8 @@ lib LibUring
 
     ring_sz : LibC::SizeT
     ring_ptr : Void*
+
+    pad : LibC::UInt[4]
   end
 
   struct IOUring
@@ -161,6 +165,8 @@ lib LibUring
     cq : IOUringCQ
     flags : LibC::UInt
     ring_fd : LibC::Int
+
+    pad : LibC::UInt[4]
   end
 
   struct IOSQRingOffsets
