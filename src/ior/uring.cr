@@ -15,9 +15,9 @@ module IOR
       @registered_files = false
 
       flags = LibUring::SETUP_FLAG::None
-      # Other flags not currently relevant as we have no support of
-      # initing using the params object. Do note that sqpoll requires
-      # using only registered files and heightened privileges.
+      # Do note that sqpoll requires using only registered files and
+      # heightened privileges.
+      # TODO: Moar flags?
       flags |= LibUring::SETUP_FLAG::SQPOLL if sq_poll
       flags |= LibUring::SETUP_FLAG::IOPOLL if io_poll
 
@@ -169,6 +169,16 @@ module IOR
     # Space left in the submission queue.
     def sq_space_left
       ring.value.sq.kring_entries.value - sq_ready
+    end
+
+    # Returns true if there are any unsubmitted SQEs.
+    def unsubmitted?
+      sq_ready == 0
+    end
+
+    # Returns true if the submission queue is full.
+    def full?
+      sq_space_left == 0
     end
 
     # Completion events waiting for processing.
