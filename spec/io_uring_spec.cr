@@ -130,7 +130,7 @@ describe IOR::IOUring do
   end
 
   describe "#peek" do
-    it "does soething" do
+    it "has block form" do
       time = 0.002.seconds
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new(size: 2) do |ring|
@@ -145,6 +145,10 @@ describe IOR::IOUring do
         end
         ring.peek do |cqe|
           cqe.user_data.should eq 4711
+        end
+
+        ring.peek do |cqe|
+          raise "Unreachable! No event here!"
         end
       end
     end
