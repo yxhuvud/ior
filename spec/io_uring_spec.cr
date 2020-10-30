@@ -149,4 +149,30 @@ describe IOR::IOUring do
       end
     end
   end
+
+  describe "#unsubmitted?" do
+    it "does soething" do
+      IOR::IOUring.new do |ring|
+        ring.unsubmitted?.should be_false
+        ring.sqe.nop
+        ring.unsubmitted?.should be_true
+        ring.submit
+        ring.unsubmitted?.should be_false
+      end
+    end
+  end
+
+  describe "#full_submission_queue?" do
+    it "returns if ring is full" do
+      IOR::IOUring.new(size: 2) do |ring|
+        ring.full_submission_queue?.should be_false
+        ring.sqe.nop
+        ring.full_submission_queue?.should be_false
+        ring.sqe.nop
+        ring.full_submission_queue?.should be_true
+        ring.submit
+        ring.full_submission_queue?.should be_false
+      end
+    end
+  end
 end

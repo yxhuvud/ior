@@ -173,11 +173,11 @@ module IOR
 
     # Returns true if there are any unsubmitted SQEs.
     def unsubmitted?
-      sq_ready == 0
+      sq_ready != 0
     end
 
     # Returns true if the submission queue is full.
-    def full?
+    def full_submission_queue?
       sq_space_left == 0
     end
 
