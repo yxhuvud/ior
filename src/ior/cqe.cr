@@ -39,6 +39,10 @@ module IOR
       res < 0
     end
 
+    def bad_file_descriptor?
+      (-res) == 9
+    end
+
     def eagain?
       (-res) == 11
     end
