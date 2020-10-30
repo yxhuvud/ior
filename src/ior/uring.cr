@@ -155,7 +155,7 @@ module IOR
     end
 
     # Marks an event as consumed
-    def seen(cqe)
+    def seen(cqe : IOR::CQE)
       LibUringShim._io_uring_cqe_seen(ring, cqe)
     end
 
