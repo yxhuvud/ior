@@ -67,6 +67,19 @@ describe IOR::SQE do
         end
       end
     end
+
+    it "can write to stdout" do
+      content = "This is content for write"
+
+      IOR::IOUring.new do |ring|
+        ring.sqe.write(STDOUT, content, user_data: 4711)
+        ring.submit.should eq 1
+        cqe = ring.wait
+
+        cqe.user_data.should eq 4711
+        cqe.res.should eq content.size
+      end
+    end
   end
 
   describe "#writev" do
@@ -170,7 +183,7 @@ describe IOR::SQE do
         ring.sqe.poll_add(left, :POLLIN, user_data: 4711)
         ring.submit
         cqe = ring.peek.should be_nil
-
+        # Note, requires multithreading to pass.
         spawn { right.write str.to_slice }
 
         ring.wait do |cqe|

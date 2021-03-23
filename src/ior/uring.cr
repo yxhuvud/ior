@@ -10,6 +10,8 @@ module IOR
     private property closed : Bool
     private property registered_files : Bool
 
+    # Regarding worker, it is quite useless now as it only works with
+    # sqpoll set. It used to be more useful.
     def initialize(size = 32, sq_poll = false, io_poll = false, worker : IOUring? = nil)
       @closed = false
       @registered_files = false
