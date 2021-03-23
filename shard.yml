@@ -15,3 +15,7 @@ repository: "https://github.com/yxhuvud/ior"
 
 scripts:
   postinstall: make
+
+dependencies:
+  crystal:
+    version: "~> 1.0"
