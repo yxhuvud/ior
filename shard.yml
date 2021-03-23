@@ -1,10 +1,10 @@
 name: ior
-version: 0.5.0
+version: 0.5.1
 
 authors:
   - Linus Sellberg <sellberg@gmail.com>
 
-crystal: 0.35.1
+crystal: >= 1.0.0
 
 license: MIT
 
@@ -16,6 +16,3 @@ repository: "https://github.com/yxhuvud/ior"
 scripts:
   postinstall: make
 
-dependencies:
-  crystal:
-    version: "~> 1.0"
