@@ -39,7 +39,7 @@ module IOR
       res = LibUring.io_uring_queue_init_params(size, ring, pointerof(params))
 
       unless res == 0
-        raise "Init: #{err(res)}"
+        raise "Init: #{Errno.new(-res)}"
       end
     end
 
@@ -88,7 +88,7 @@ module IOR
     def submit
       res = LibUring.io_uring_submit(ring)
       if res < 0
-        raise "Submit #{err res}"
+        raise "Submit #{Errno.new -res}"
       end
       res
     end
@@ -115,7 +115,7 @@ module IOR
     def wait(nr)
       cqe = wait_cqe(nr)
       if cqe.ring_error?
-        raise "Wait: #{err cqe.errno}"
+        raise "Wait: #{cqe.ring_errno.message}"
       end
 
       cqe
@@ -128,7 +128,7 @@ module IOR
     def submit_and_wait(nr = 1)
       res = LibUring.io_uring_submit_and_wait(ring, nr)
       if res < 0
-        raise "Submit #{err res}"
+        raise "Submit #{Errno.new(-res).message}"
       end
       res
     end
@@ -136,10 +136,10 @@ module IOR
     # Returns next event if one is available.
     def peek
       cqe = wait_cqe(0)
-      if cqe.errno == -LibC::EAGAIN
+      if cqe.ring_errno.eagain?
         nil
       elsif cqe.ring_error?
-        raise "Peek: #{err cqe.errno}"
+        raise "Peek: #{cqe.ring_errno.message}"
       else
         cqe
       end
@@ -199,10 +199,6 @@ module IOR
     private def wait_cqe(nr)
       res = LibUringShim._io_uring_wait_cqe_nr(ring, out cqe_ptr, nr)
       CQE.new(cqe_ptr, res)
-    end
-
-    private def err(res)
-      String.new(LibC.strerror(-res))
     end
   end
 end

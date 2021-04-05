@@ -12,7 +12,7 @@ module IOR
     end
 
     def errno
-      @res
+      ring_errno.none? ? cqe_errno : ring_errno
     end
 
     def res
@@ -23,8 +23,16 @@ module IOR
       @cqe.value.user_data
     end
 
+    def ring_errno
+      @res < 0 ? Errno.new(-@res) : Errno.new(0)
+    end
+
+    def cqe_errno
+      res < 0 ? Errno.new(-res) : Errno.new(0)
+    end
+
     def error_message
-      String.new(LibC.strerror(-(ring_error? ? @res : res)))
+      errno.message
     end
 
     def success?
