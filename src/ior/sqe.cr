@@ -76,7 +76,7 @@ module IOR
       end
     end
 
-    def timeout(time : LibC::Timespec*, relative = true, wait_nr = 1, **options)
+    def timeout(time : LibC::Timespec*, relative = true, wait_nr = 0, **options)
       prep_rw(LibUring::Op::TIMEOUT, nil, time.address, 1, wait_nr, **options).tap do |sqe|
         sqe.value.event_flags.timeout_flags = relative ? 0 : 1
       end

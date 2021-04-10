@@ -195,7 +195,7 @@ describe IOR::SQE do
   end
 
   describe "#timeout" do
-    it "timeouts" do
+    it "sleeps" do
       time = 0.001.seconds
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new do |ring|
@@ -209,11 +209,42 @@ describe IOR::SQE do
       end
     end
 
+    it "can do multiple timeouts" do
+      time1 = 0.01.seconds
+      time2 = 0.02.seconds
+      time3 = 0.03.seconds
+      timespec1 = LibC::Timespec.new(tv_sec: time1.to_i, tv_nsec: time1.nanoseconds)
+      timespec2 = LibC::Timespec.new(tv_sec: time2.to_i, tv_nsec: time2.nanoseconds)
+      timespec3 = LibC::Timespec.new(tv_sec: time3.to_i, tv_nsec: time3.nanoseconds)
+      IOR::IOUring.new do |ring|
+        ring.sqe.timeout(pointerof(timespec3), user_data: 3)
+        ring.sqe.timeout(pointerof(timespec1), user_data: 1)
+        ring.sqe.timeout(pointerof(timespec2), user_data: 2)
+        ring.submit
+        ring.peek.should eq nil
+
+        cqe = ring.wait
+        cqe.user_data.should eq 1
+        cqe.timed_out?.should be_true
+        ring.seen cqe
+
+        cqe = ring.wait
+        cqe.user_data.should eq 2
+        cqe.timed_out?.should be_true
+        ring.seen cqe
+
+        cqe = ring.wait
+        cqe.user_data.should eq 3
+        cqe.timed_out?.should be_true
+        ring.seen cqe
+      end
+    end
+
     it "returns early if appropriate amount of events has completed." do
       time = 0.001.seconds
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new do |ring|
-        ring.sqe.timeout(pointerof(timespec), user_data: 4711)
+        ring.sqe.timeout(pointerof(timespec), wait_nr: 1, user_data: 4711)
         ring.sqe.nop(user_data: 17)
         ring.submit
 
