@@ -103,7 +103,7 @@ module IOR
       prep_rw(LibUring::Op::ACCEPT, fd, nil, 0, 0, **options)
     end
 
-    def connect(fd, addr : Socket::Addrinfo, **options)
+    def connect(fd, addr : Socket::Addrinfo | Socket::Address, **options)
       prep_rw(LibUring::Op::CONNECT, fd, addr.to_unsafe.address, 0, addr.size, **options)
     end
 

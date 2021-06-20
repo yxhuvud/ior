@@ -414,7 +414,7 @@ describe IOR::SQE do
   end
 
   describe "#connect" do
-    it "connects" do
+    it "connects - addrinfo" do
       port = unused_local_port
       TCPServer.open("127.0.0.1", port) do |server|
         Socket::Addrinfo.tcp("127.0.0.1", port) do |addrinfo|
@@ -428,6 +428,23 @@ describe IOR::SQE do
             sock = TCPSocket.new(fd: fd, family: addrinfo.family)
             sock.close
           end
+        end
+      end
+    end
+
+    it "connects - IP address" do
+      port = unused_local_port
+      TCPServer.open("::1", port) do |server|
+        address = Socket::IPAddress.new("::1", port)
+        socket = Socket.tcp(Socket::Family::INET6)
+
+        IOR::IOUring.new do |ring|
+          ring.sqe.connect(socket, address, user_data: 4711)
+          ring.submit_and_wait
+          cqe = ring.wait
+          cqe.error_message.should eq "Success"
+          server.accept
+          socket.close
         end
       end
     end
