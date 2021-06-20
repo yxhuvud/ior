@@ -391,7 +391,7 @@ describe IOR::SQE do
 
         IOR::IOUring.new do |ring|
           loop do
-            ring.sqe.accept(server.fd, user_data: 4711)
+            ring.sqe.accept(server, user_data: 4711)
             ring.submit
             cqe = ring.wait
             if cqe.eagain?
