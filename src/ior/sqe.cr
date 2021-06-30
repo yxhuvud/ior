@@ -8,7 +8,7 @@ module IOR
     end
 
     def nop(**options)
-      prep_rw(LibUring::Op::NOP, nil, nil, 0, 0, **options)
+      prep_rw(LibUring::Op::NOP, **options)
     end
 
     def read(fd, buf, size = buf.size, offset = -1, **options)
@@ -29,13 +29,13 @@ module IOR
     end
 
     def fsync(fd, flags = 0, **options)
-      prep_rw(LibUring::Op::FSYNC, fd, nil, 0, 0, **options).tap do |sqe|
+      prep_rw(LibUring::Op::FSYNC, fd, **options).tap do |sqe|
         sqe.value.event_flags.fsync_flags = flags
       end
     end
 
     def poll_add(fd, poll_mask : LibC::POLL_FLAG = LibC::POLL_FLAG::POLLIN, **options)
-      prep_rw(LibUring::Op::POLL_ADD, fd, nil, 0, 0, **options).tap do |sqe|
+      prep_rw(LibUring::Op::POLL_ADD, fd, **options).tap do |sqe|
         sqe.value.event_flags.poll_events = poll_mask
       end
     end
@@ -77,7 +77,7 @@ module IOR
     end
 
     def timeout(time : LibC::Timespec*, relative = true, wait_nr = 0, **options)
-      prep_rw(LibUring::Op::TIMEOUT, nil, time.address, 1, wait_nr, **options).tap do |sqe|
+      prep_rw(LibUring::Op::TIMEOUT, 0, time.address, 1, wait_nr, **options).tap do |sqe|
         sqe.value.event_flags.timeout_flags = relative ? 0 : 1
       end
     end
@@ -85,22 +85,22 @@ module IOR
     # Note: Requires the preceding operation in the same submit to
     # have the io_link flag set.
     def link_timeout(time : LibC::Timespec*, relative = true, **options)
-      prep_rw(LibUring::Op::LINK_TIMEOUT, nil, time.address, 1, 0, **options).tap do |sqe|
+      prep_rw(LibUring::Op::LINK_TIMEOUT, 0, time.address, 1, 0, **options).tap do |sqe|
         sqe.value.event_flags.timeout_flags = relative ? 0 : 1
       end
     end
 
     def timeout_remove(cancel_userdata : UInt64, **options)
-      prep_rw(LibUring::Op::TIMEOUT_REMOVE, nil, cancel_userdata, 0, 0, **options)
+      prep_rw(LibUring::Op::TIMEOUT_REMOVE, 0, cancel_userdata, 0, 0, **options)
     end
 
     def async_cancel(cancel_userdata : UInt64, **options)
-      prep_rw(LibUring::Op::ASYNC_CANCEL, nil, cancel_userdata, 0, 0, **options)
+      prep_rw(LibUring::Op::ASYNC_CANCEL, 0, cancel_userdata, 0, 0, **options)
     end
 
     # TODO: Support passing sockaddr, socklen and flags.
     def accept(fd, **options)
-      prep_rw(LibUring::Op::ACCEPT, fd, nil, 0, 0, **options)
+      prep_rw(LibUring::Op::ACCEPT, fd, 0, 0, 0, **options)
     end
 
     def connect(fd, addr : Socket::Addrinfo | Socket::Address, **options)
@@ -141,7 +141,11 @@ module IOR
       prep_rw(LibUring::Op::FILES_UPDATE, -1, files.to_unsafe.address, files.size, off, **options)
     end
 
-    private def prep_rw(op : LibUring::Op, io_or_index, addr : UInt64?, length, offset,
+    private def prep_rw(op : LibUring::Op,
+                        io_or_index = 0i32,
+                        addr : UInt64? = 0u64,
+                        length = 0u32,
+                        offset = 0u64,
                         user_data = 0u64,
                         fixed_file = false,
                         io_drain = false,
@@ -162,7 +166,7 @@ module IOR
         sqe.value.fd = io_or_index.is_a?(Int32) ? io_or_index : io_or_index.fd
       end
       sqe.value.off_or_addr2.off = offset
-      sqe.value.addr = addr if addr
+      sqe.value.addr = addr
       sqe.value.len = length
       sqe.value.user_data = user_data
       sqe.value.buf_or_pad.pad2[0] = sqe.value.buf_or_pad.pad2[1] = sqe.value.buf_or_pad.pad2[2] = 0
