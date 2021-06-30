@@ -192,6 +192,33 @@ describe IOR::SQE do
         end
       end
     end
+
+    it "wakes all pollers on trigger" do
+      str = "hello world!"
+      left, right = UNIXSocket.pair
+      times = 32
+
+      IOR::IOUring.new do |ring|
+        times.times do |i|
+          ring.sqe.poll_add(left, :POLLIN, user_data: i)
+        end
+        ring.submit
+        cqe = ring.peek.should be_nil
+        # Note, requires multithreading to pass.
+        spawn { right.write str.to_slice }
+
+        uds = Array(UInt64).new
+
+        ring.wait(times)
+        times.times do
+          ring.peek do |cqe|
+            uds << cqe.user_data
+          end
+        end
+
+        uds.sort.should eq (0...times).to_a
+      end
+    end
   end
 
   describe "#timeout" do
