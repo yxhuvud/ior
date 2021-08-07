@@ -103,8 +103,8 @@ module IOR
       prep_rw(LibUring::Op::ACCEPT, fd, 0, 0, 0, **options)
     end
 
-    def connect(fd, addr : Socket::Addrinfo | Socket::Address, **options)
-      prep_rw(LibUring::Op::CONNECT, fd, addr.to_unsafe.address, 0, addr.size, **options)
+    def connect(fd, addr, size,  **options)
+      prep_rw(LibUring::Op::CONNECT, fd, addr, 0, size, **options)
     end
 
     def fallocate(fd, offset, length, mode = 0, **options)

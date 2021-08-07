@@ -447,7 +447,7 @@ describe IOR::SQE do
         Socket::Addrinfo.tcp("127.0.0.1", port) do |addrinfo|
           fd = LibC.socket(addrinfo.family, addrinfo.type, addrinfo.protocol)
           IOR::IOUring.new do |ring|
-            ring.sqe.connect(fd, addrinfo, user_data: 4711)
+            ring.sqe.connect(fd, addrinfo.to_unsafe.address, addrinfo.size, user_data: 4711)
             ring.submit_and_wait
             cqe = ring.wait
             cqe.error_message.should eq "Success"
@@ -459,6 +459,42 @@ describe IOR::SQE do
       end
     end
 
+    it "connects - spawned addrinfo", focus: true do
+      port = unused_local_port
+      server = Socket.new(Socket::Family::INET, Socket::Type::STREAM, Socket::Protocol::TCP)
+      server.bind("127.0.0.1", port)
+      server.listen
+      client = nil
+      chan = Channel(Socket).new
+
+      spawn do
+        Socket::Addrinfo.tcp("127.0.0.1", port) do |addrinfo|
+          sock = Socket.new(addrinfo.family, addrinfo.type, addrinfo.protocol)
+          IOR::IOUring.new do |ring|
+            ring.sqe.connect(sock.fd, addrinfo.to_unsafe.address, addrinfo.size, user_data: 4711)
+            # For unknown reason this addrinfo is necessary to fail
+            # the test when this was wrong in the old setup. No idea
+            # why it is needed :(
+            addrinfo.inspect
+            ring.submit_and_wait
+            cqe = ring.wait
+            cqe.error_message.should eq "Success"
+          end
+          chan.send sock
+        end
+      end
+
+      client = server.accept
+
+      client.not_nil!.family.should eq(Socket::Family::INET)
+      client.not_nil!.type.should eq(Socket::Type::STREAM)
+      client.not_nil!.protocol.should eq(Socket::Protocol::TCP)
+
+      client.not_nil!.close
+
+      chan.receive.close
+    end
+
     it "connects - IP address" do
       port = unused_local_port
       TCPServer.open("::1", port) do |server|
@@ -466,7 +502,7 @@ describe IOR::SQE do
         socket = Socket.tcp(Socket::Family::INET6)
 
         IOR::IOUring.new do |ring|
-          ring.sqe.connect(socket, address, user_data: 4711)
+          ring.sqe.connect(socket, address.to_unsafe.address, address.size, user_data: 4711)
           ring.submit_and_wait
           cqe = ring.wait
           cqe.error_message.should eq "Success"
