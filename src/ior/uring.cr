@@ -191,8 +191,17 @@ module IOR
       LibUringShim._io_uring_cq_ready(ring)
     end
 
+    # Returns a sqe if there is space available, or nil.
     def sqe
-      SQE.new(LibUring.io_uring_get_sqe(ring))
+      if sqe_ptr = LibUring.io_uring_get_sqe(ring)
+        SQE.new(sqe_ptr)
+      else
+        nil
+      end
+    end
+
+    def sqe! : SQE
+      sqe.not_nil!
     end
 
     def fd

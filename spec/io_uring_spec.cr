@@ -13,8 +13,8 @@ describe IOR::IOUring do
 
         original.fd.should_not eq reusing_ring.fd
 
-        original.sqe.nop user_data: 17
-        reusing_ring.sqe.nop user_data: 4711
+        original.sqe!.nop user_data: 17
+        reusing_ring.sqe!.nop user_data: 4711
 
         original.submit_and_wait.should eq 1
         reusing_ring.submit_and_wait.should eq 1
@@ -42,7 +42,7 @@ describe IOR::IOUring do
           buf = Slice(UInt8).new(32) { 0u8 }
           ring.register_files([fh])
 
-          ring.sqe.readv(0, iovec(buf), 0, user_data: 4711, fixed_file: true)
+          ring.sqe!.readv(0, iovec(buf), 0, user_data: 4711, fixed_file: true)
           ring.submit.should eq 1
 
           ring.wait do |cqe|
@@ -59,7 +59,6 @@ describe IOR::IOUring do
       File.write ".test/sqpoll", content
 
       # Eh, this requires root. Pending this for now.
-
       # IOR::IOUring.new(sq_poll: true) do |ring|
       #   File.open(".test/sqpoll") do |fh|
       #     buf = Slice(UInt8).new(32) { 0u8 }
@@ -77,13 +76,27 @@ describe IOR::IOUring do
     end
   end
 
+  describe "#sqe/#sqe!" do
+    it "returns a sqe" do
+      IOR::IOUring.new(size: 2) do |ring|
+        2.times { ring.sqe!.nop }
+        ring.sqe.should eq nil
+
+        ring.submit
+        ring.wait
+        ring.sqe.should be_a(IOR::SQE)
+        ring.sqe!.should be_a(IOR::SQE)
+      end
+    end
+  end
+
   describe "#ready/#space_left/#cq_ready" do
     it "keep track of the queue sizes" do
       IOR::IOUring.new(size: 4) do |ring|
         ring.sq_ready.should eq 0
         ring.sq_space_left.should eq 4
 
-        3.times { ring.sqe.nop }
+        3.times { ring.sqe!.nop }
 
         ring.sq_ready.should eq 3
         ring.sq_space_left.should eq 1
@@ -102,7 +115,7 @@ describe IOR::IOUring do
   describe "#wait" do
     it "waits until completion" do
       IOR::IOUring.new(size: 1) do |ring|
-        ring.sqe.nop user_data: 123
+        ring.sqe!.nop user_data: 123
         ring.submit
 
         ring.wait do |cqe|
@@ -117,7 +130,7 @@ describe IOR::IOUring do
   describe "#submit_and_wait" do
     it "waits until completion" do
       IOR::IOUring.new(size: 1) do |ring|
-        ring.sqe.nop user_data: 123
+        ring.sqe!.nop user_data: 123
         ring.submit_and_wait
 
         ring.peek do |cqe|
@@ -134,10 +147,10 @@ describe IOR::IOUring do
       time = 0.002.seconds
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new(size: 2) do |ring|
-        ring.sqe.timeout(pointerof(timespec), user_data: 4711)
+        ring.sqe!.timeout(pointerof(timespec), user_data: 4711)
         ring.submit
         ring.peek.should be_nil
-        ring.sqe.nop user_data: 123
+        ring.sqe!.nop user_data: 123
         ring.submit
 
         ring.wait do |cqe|
@@ -158,7 +171,7 @@ describe IOR::IOUring do
     it "does soething" do
       IOR::IOUring.new do |ring|
         ring.unsubmitted?.should be_false
-        ring.sqe.nop
+        ring.sqe!.nop
         ring.unsubmitted?.should be_true
         ring.submit
         ring.unsubmitted?.should be_false
@@ -170,9 +183,9 @@ describe IOR::IOUring do
     it "returns if ring is full" do
       IOR::IOUring.new(size: 2) do |ring|
         ring.full_submission_queue?.should be_false
-        ring.sqe.nop
+        ring.sqe!.nop
         ring.full_submission_queue?.should be_false
-        ring.sqe.nop
+        ring.sqe!.nop
         ring.full_submission_queue?.should be_true
         ring.submit
         ring.full_submission_queue?.should be_false

@@ -18,7 +18,7 @@ describe IOR::SQE do
         File.open(".test/read") do |fh|
           buf = Slice(UInt8).new(32) { 0u8 }
 
-          ring.sqe.read(fh, buf, user_data: 4711)
+          ring.sqe!.read(fh, buf, user_data: 4711)
           ring.submit_and_wait
           ring.peek do |cqe|
             cqe.user_data.should eq 4711
@@ -39,7 +39,7 @@ describe IOR::SQE do
         File.open(".test/readv") do |fh|
           buf = Slice(UInt8).new(32) { 0u8 }
 
-          ring.sqe.readv(fh, iovec(buf), 0, user_data: 4711)
+          ring.sqe!.readv(fh, iovec(buf), 0, user_data: 4711)
           ring.submit.should eq 1
           cqe = ring.wait
 
@@ -57,7 +57,7 @@ describe IOR::SQE do
 
       IOR::IOUring.new do |ring|
         File.open(".test/write", "w") do |fh|
-          ring.sqe.write(fh, content, user_data: 4711)
+          ring.sqe!.write(fh, content, user_data: 4711)
           ring.submit.should eq 1
           cqe = ring.wait
 
@@ -72,7 +72,7 @@ describe IOR::SQE do
       content = "This is content for write"
 
       IOR::IOUring.new do |ring|
-        ring.sqe.write(STDOUT, content, user_data: 4711)
+        ring.sqe!.write(STDOUT, content, user_data: 4711)
         ring.submit.should eq 1
         cqe = ring.wait
 
@@ -88,7 +88,7 @@ describe IOR::SQE do
 
       IOR::IOUring.new do |ring|
         File.open(".test/writev", "w") do |fh|
-          ring.sqe.writev(fh, iovec(content), 0, user_data: 4711)
+          ring.sqe!.writev(fh, iovec(content), 0, user_data: 4711)
           ring.submit.should eq 1
           cqe = ring.wait
 
@@ -108,7 +108,7 @@ describe IOR::SQE do
         buf = Slice(UInt8).new(32) { 0u8 }
 
         right.write str.to_slice
-        ring.sqe.recv(left, buf, user_data: 4711)
+        ring.sqe!.recv(left, buf, user_data: 4711)
         ring.submit.should eq 1
         cqe = ring.wait
 
@@ -128,7 +128,7 @@ describe IOR::SQE do
         header = msgheader(iovec(buf))
 
         right.write str.to_slice
-        ring.sqe.recvmsg(left, pointerof(header), 0, user_data: 4711)
+        ring.sqe!.recvmsg(left, pointerof(header), 0, user_data: 4711)
         ring.submit.should eq 1
         cqe = ring.wait
 
@@ -144,7 +144,7 @@ describe IOR::SQE do
       str = "hello world!"
       left, right = UNIXSocket.pair
       IOR::IOUring.new do |ring|
-        ring.sqe.send(left, str, user_data: 4711)
+        ring.sqe!.send(left, str, user_data: 4711)
         ring.submit.should eq 1
         cqe = ring.wait
         left.close
@@ -163,7 +163,7 @@ describe IOR::SQE do
       IOR::IOUring.new do |ring|
         header = msgheader(iovec(str))
 
-        ring.sqe.sendmsg(left, pointerof(header), 0, user_data: 4711)
+        ring.sqe!.sendmsg(left, pointerof(header), 0, user_data: 4711)
         ring.submit.should eq 1
         cqe = ring.wait
         left.close
@@ -180,7 +180,7 @@ describe IOR::SQE do
       str = "hello world!"
       left, right = UNIXSocket.pair
       IOR::IOUring.new do |ring|
-        ring.sqe.poll_add(left, :POLLIN, user_data: 4711)
+        ring.sqe!.poll_add(left, :POLLIN, user_data: 4711)
         ring.submit
         cqe = ring.peek.should be_nil
         # Note, requires multithreading to pass.
@@ -200,7 +200,7 @@ describe IOR::SQE do
 
       IOR::IOUring.new do |ring|
         times.times do |i|
-          ring.sqe.poll_add(left, :POLLIN, user_data: i)
+          ring.sqe!.poll_add(left, :POLLIN, user_data: i)
         end
         ring.submit
         cqe = ring.peek.should be_nil
@@ -226,7 +226,7 @@ describe IOR::SQE do
       time = 0.001.seconds
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new do |ring|
-        ring.sqe.timeout(pointerof(timespec), user_data: 4711)
+        ring.sqe!.timeout(pointerof(timespec), user_data: 4711)
         ring.submit
         ring.peek.should eq nil
 
@@ -244,9 +244,9 @@ describe IOR::SQE do
       timespec2 = LibC::Timespec.new(tv_sec: time2.to_i, tv_nsec: time2.nanoseconds)
       timespec3 = LibC::Timespec.new(tv_sec: time3.to_i, tv_nsec: time3.nanoseconds)
       IOR::IOUring.new do |ring|
-        ring.sqe.timeout(pointerof(timespec3), user_data: 3)
-        ring.sqe.timeout(pointerof(timespec1), user_data: 1)
-        ring.sqe.timeout(pointerof(timespec2), user_data: 2)
+        ring.sqe!.timeout(pointerof(timespec3), user_data: 3)
+        ring.sqe!.timeout(pointerof(timespec1), user_data: 1)
+        ring.sqe!.timeout(pointerof(timespec2), user_data: 2)
         ring.submit
         ring.peek.should eq nil
 
@@ -271,8 +271,8 @@ describe IOR::SQE do
       time = 0.001.seconds
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new do |ring|
-        ring.sqe.timeout(pointerof(timespec), wait_nr: 1, user_data: 4711)
-        ring.sqe.nop(user_data: 17)
+        ring.sqe!.timeout(pointerof(timespec), wait_nr: 1, user_data: 4711)
+        ring.sqe!.nop(user_data: 17)
         ring.submit
 
         cqe = ring.wait
@@ -293,8 +293,8 @@ describe IOR::SQE do
       left, right = UNIXSocket.pair
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new do |ring|
-        ring.sqe.poll_add(left, user_data: 4711, io_link: true)
-        ring.sqe.link_timeout(pointerof(timespec), user_data: 13)
+        ring.sqe!.poll_add(left, user_data: 4711, io_link: true)
+        ring.sqe!.link_timeout(pointerof(timespec), user_data: 13)
         ring.submit
         ring.peek.should be_nil
 
@@ -324,8 +324,8 @@ describe IOR::SQE do
       buf = Slice(UInt8).new(32) { 0u8 }
       header = msgheader(iovec(buf))
       IOR::IOUring.new do |ring|
-        ring.sqe.recvmsg(left, pointerof(header), 0, user_data: 4711, io_link: true)
-        ring.sqe.link_timeout(pointerof(timespec), user_data: 13)
+        ring.sqe!.recvmsg(left, pointerof(header), 0, user_data: 4711, io_link: true)
+        ring.sqe!.link_timeout(pointerof(timespec), user_data: 13)
         ring.submit
         right.write buf
 
@@ -349,9 +349,9 @@ describe IOR::SQE do
       time = 5.days
       timespec = LibC::Timespec.new(tv_sec: time.to_i, tv_nsec: time.nanoseconds)
       IOR::IOUring.new do |ring|
-        ring.sqe.timeout(pointerof(timespec), user_data: 4711)
+        ring.sqe!.timeout(pointerof(timespec), user_data: 4711)
         ring.submit
-        ring.sqe.timeout_remove(4711, user_data: 13)
+        ring.sqe!.timeout_remove(4711, user_data: 13)
         ring.submit
 
         # The order between this and the following group is arbitrary,
@@ -373,11 +373,11 @@ describe IOR::SQE do
     it "cancels" do
       left, right = UNIXSocket.pair
       IOR::IOUring.new do |ring|
-        ring.sqe.poll_add(left, user_data: 4711)
+        ring.sqe!.poll_add(left, user_data: 4711)
         ring.submit
         cqe = ring.peek.should be_nil
 
-        ring.sqe.async_cancel(4711, user_data: 13)
+        ring.sqe!.async_cancel(4711, user_data: 13)
         ring.submit
 
         # Different Linux versions return these in different order.
@@ -418,7 +418,7 @@ describe IOR::SQE do
 
         IOR::IOUring.new do |ring|
           loop do
-            ring.sqe.accept(server, user_data: 4711)
+            ring.sqe!.accept(server, user_data: 4711)
             ring.submit
             cqe = ring.wait
             if cqe.eagain?
@@ -447,7 +447,7 @@ describe IOR::SQE do
         Socket::Addrinfo.tcp("127.0.0.1", port) do |addrinfo|
           fd = LibC.socket(addrinfo.family, addrinfo.type, addrinfo.protocol)
           IOR::IOUring.new do |ring|
-            ring.sqe.connect(fd, addrinfo.to_unsafe.address, addrinfo.size, user_data: 4711)
+            ring.sqe!.connect(fd, addrinfo.to_unsafe.address, addrinfo.size, user_data: 4711)
             ring.submit_and_wait
             cqe = ring.wait
             cqe.error_message.should eq "Success"
@@ -471,7 +471,7 @@ describe IOR::SQE do
         Socket::Addrinfo.tcp("127.0.0.1", port) do |addrinfo|
           sock = Socket.new(addrinfo.family, addrinfo.type, addrinfo.protocol)
           IOR::IOUring.new do |ring|
-            ring.sqe.connect(sock.fd, addrinfo.to_unsafe.address, addrinfo.size, user_data: 4711)
+            ring.sqe!.connect(sock.fd, addrinfo.to_unsafe.address, addrinfo.size, user_data: 4711)
             # For unknown reason this addrinfo is necessary to fail
             # the test when this was wrong in the old setup. No idea
             # why it is needed :(
@@ -502,7 +502,7 @@ describe IOR::SQE do
         socket = Socket.tcp(Socket::Family::INET6)
 
         IOR::IOUring.new do |ring|
-          ring.sqe.connect(socket, address.to_unsafe.address, address.size, user_data: 4711)
+          ring.sqe!.connect(socket, address.to_unsafe.address, address.size, user_data: 4711)
           ring.submit_and_wait
           cqe = ring.wait
           cqe.error_message.should eq "Success"
@@ -519,7 +519,7 @@ describe IOR::SQE do
       File.size(".test/fallocate").should eq 4
       File.open ".test/fallocate", "w" do |f|
         IOR::IOUring.new do |ring|
-          ring.sqe.fallocate f.fd, 0, 1024
+          ring.sqe!.fallocate f.fd, 0, 1024
           ring.submit_and_wait
           cqe = ring.wait
           cqe.success?.should be_true
@@ -534,7 +534,7 @@ describe IOR::SQE do
     it "Can open files" do
       File.write ".test/openat", "test"
       IOR::IOUring.new do |ring|
-        ring.sqe.openat ".test/openat", relative_to_cwd: true, flags: "r"
+        ring.sqe!.openat ".test/openat", relative_to_cwd: true, flags: "r"
         ring.submit_and_wait
         cqe = ring.wait
         cqe.success?.should eq true
@@ -557,7 +557,7 @@ describe IOR::SQE do
     it "works" do
       fh = File.open ".test/close", "w"
       IOR::IOUring.new do |ring|
-        ring.sqe.close fh.fd
+        ring.sqe!.close fh.fd
         ring.submit_and_wait
         cqe = ring.wait
         cqe.success?.should eq true
@@ -575,7 +575,7 @@ describe IOR::SQE do
         fh1 = File.open(".test/files_update1")
         fh2 = File.open(".test/files_update2")
         ring.register_files [fh1]
-        ring.sqe.files_update([fh2.fd], 0)
+        ring.sqe!.files_update([fh2.fd], 0)
 
         ring.submit_and_wait
         cqe = ring.wait
@@ -583,7 +583,7 @@ describe IOR::SQE do
         ring.seen cqe
 
         buf = Slice(UInt8).new(content.size * 2) { 0u8 }
-        ring.sqe.readv(0, iovec(buf), 0, user_data: 4711, fixed_file: true)
+        ring.sqe!.readv(0, iovec(buf), 0, user_data: 4711, fixed_file: true)
         ring.submit.should eq 1
 
         ring.wait do |cqe|
@@ -602,7 +602,7 @@ describe IOR::SQE do
       p_out, p_in = IO.pipe
 
       IOR::IOUring.new do |ring|
-        ring.sqe.splice(fh, 6, p_in, nil, 5)
+        ring.sqe!.splice(fh, 6, p_in, nil, 5)
         ring.submit_and_wait
 
         cqe = ring.wait
