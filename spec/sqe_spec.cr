@@ -459,7 +459,7 @@ describe IOR::SQE do
       end
     end
 
-    it "connects - spawned addrinfo", focus: true do
+    it "connects - spawned addrinfo" do
       port = unused_local_port
       server = Socket.new(Socket::Family::INET, Socket::Type::STREAM, Socket::Protocol::TCP)
       server.bind("127.0.0.1", port)
