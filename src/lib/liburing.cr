@@ -1,6 +1,6 @@
 require "./libc"
 
-@[Link("liburing")]
+@[Link(ldflags: "#{__DIR__}/../../build/liburing.a")]
 lib LibUring
   enum Op : UInt8
     NOP
