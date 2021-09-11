@@ -1,5 +1,5 @@
 name: ior
-version: 0.7.1
+version: 0.7.2
 
 authors:
   - Linus Sellberg <sellberg@gmail.com>
@@ -14,5 +14,5 @@ libraries:
 repository: "https://github.com/yxhuvud/ior"
 
 scripts:
-  postinstall: make
+  postinstall: make build
 
