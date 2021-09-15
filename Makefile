@@ -12,7 +12,7 @@ build/liburing.a: init
 	    rm -rf submodules/liburing; \
 	    git clone https://github.com/axboe/liburing submodules/liburing; \
 	fi
-	cd submodules/liburing && git fetch && git checkout b936762bb0aea0c259ee4
+	cd submodules/liburing && git fetch && git checkout liburing-2.1
 	$(MAKE) -C submodules/liburing
 	cp submodules/liburing/src/liburing.a build/
 
