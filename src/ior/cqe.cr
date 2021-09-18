@@ -2,9 +2,44 @@ require "../lib/liburing_shim"
 
 module IOR
   struct CQE
+    struct Result
+      property result : Int32
+
+      def initialize(@result)
+      end
+
+      def bad_file_descriptor?
+        (-result) == 9
+      end
+
+      def eagain?
+        (-result) == 11
+      end
+
+      def timed_out?
+        (-result) == 62
+      end
+
+      def canceled?
+        (-result) == 125
+      end
+
+      def error?
+        result < 0
+      end
+
+      def errno
+        result < 0 ? Errno.new(-result) : Errno.new(0)
+      end
+    end
+
+    delegate timed_out?, canceled?, eagain?, bad_file_descriptor?, to: @result
+
     private property cqe
+    getter result : Result
 
     def initialize(@cqe : LibUring::IOUringCQE*, @res : Int32)
+      @result = @cqe ? Result.new(@cqe.value.res) : Result.new(0)
     end
 
     def to_unsafe
@@ -28,7 +63,7 @@ module IOR
     end
 
     def cqe_errno
-      res < 0 ? Errno.new(-res) : Errno.new(0)
+      result.errno
     end
 
     def error_message
@@ -44,23 +79,7 @@ module IOR
     end
 
     def cqe_error?
-      res < 0
-    end
-
-    def bad_file_descriptor?
-      (-res) == 9
-    end
-
-    def eagain?
-      (-res) == 11
-    end
-
-    def timed_out?
-      (-res) == 62
-    end
-
-    def canceled?
-      (-res) == 125
+      result.error?
     end
   end
 end
