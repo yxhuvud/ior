@@ -28,6 +28,10 @@ module IOR
         result < 0
       end
 
+      def success?
+        !error?
+      end
+
       def errno
         result < 0 ? Errno.new(-result) : Errno.new(0)
       end
@@ -71,7 +75,7 @@ module IOR
     end
 
     def success?
-      !ring_error? && !cqe_error?
+      !ring_error? && result.success?
     end
 
     def ring_error?
