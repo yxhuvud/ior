@@ -8,6 +8,10 @@ module IOR
       def initialize(@result)
       end
 
+      def to_i
+        result
+      end
+
       def bad_file_descriptor?
         (-result) == 9
       end
