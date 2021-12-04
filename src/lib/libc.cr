@@ -19,19 +19,23 @@ lib LibC
 
   # Defined in poll.h
   @[Flags]
-  enum POLL_FLAG : UInt16
-    POLLIN     = 0x0001
-    POLLPRI    = 0x0002
-    POLLOUT    = 0x0004
-    POLLERR    = 0x0008
-    POLLHUP    = 0x0010
-    POLLNVAL   = 0x0020
-    POLLRDNORM = 0x0040
-    POLLRDBAND = 0x0080
-    POLLWRNORM = 0x0100
-    POLLWRBAND = 0x0200
-    POLLMSG    = 0x0400
-    POLLREMOVE = 0x1000
-    POLLRDHUP  = 0x2000
+  enum POLL_FLAG : UInt32
+    POLLIN        = 0x0001
+    POLLPRI       = 0x0002
+    POLLOUT       = 0x0004
+    POLLERR       = 0x0008
+    POLLHUP       = 0x0010
+    POLLNVAL      = 0x0020
+    POLLRDNORM    = 0x0040
+    POLLRDBAND    = 0x0080
+    POLLWRNORM    = 0x0100
+    POLLWRBAND    = 0x0200
+    POLLMSG       = 0x0400
+    POLLREMOVE    = 0x1000
+    POLLRDHUP     = 0x2000
+    POLLEXCLUSIVE = 1 << 28
+    POLLWAKEUP    = 1 << 29
+    POLLONESHOT   = 1 << 30
+    POLLET        = 1 << 31
   end
 end

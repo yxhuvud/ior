@@ -219,6 +219,28 @@ describe IOR::SQE do
         uds.sort.should eq (0...times).to_a
       end
     end
+
+    it "wakes one poller on trigger if exclusive" do
+      str = "hello world!"
+      left, right = UNIXSocket.pair
+      times = 2
+
+      IOR::IOUring.new do |ring|
+        ring.sqe!.poll_add(left, LibC::POLL_FLAG::POLLIN | LibC::POLL_FLAG::POLLEXCLUSIVE, user_data: 1)
+        ring.sqe!.poll_add(left, LibC::POLL_FLAG::POLLIN | LibC::POLL_FLAG::POLLEXCLUSIVE, user_data: 2)
+
+        ring.submit
+        cqe = ring.peek.should be_nil
+        # Note, requires multithreading to pass.
+        spawn { right.write str.to_slice }
+        sleep 0.01
+        ring.wait(1)
+        ring.peek do |cqe|
+          cqe.user_data.should eq 1
+        end
+        ring.peek.should be_nil
+      end
+    end
   end
 
   describe "#timeout" do
