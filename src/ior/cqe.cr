@@ -86,6 +86,10 @@ module IOR
       @res < 0
     end
 
+    def ring_timed_out?
+      @res == -62
+    end
+
     def cqe_error?
       result.error?
     end

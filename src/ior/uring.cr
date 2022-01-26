@@ -98,13 +98,32 @@ module IOR
 
     # Returns next event. Waits for an event to be completed if none
     # are available
-    def wait
-      wait 1
+    def wait : CQE
+      wait(1)
+    end
+
+    # Returns next event. Waits for an event to be completed if none
+    # are available.
+    def wait(timeout : LibC::Timespec*) : CQE?
+      wait(1, timeout)
     end
 
     # Yields next event, and marks it as seen when done.
     def wait
-      cqe = wait 1
+      cqe = wait(1)
+
+      begin
+        yield cqe
+      ensure
+        seen cqe
+      end
+    end
+
+    # Yields next event unless a timeout happens, and marks it as seen
+    # when done.
+    def wait(timeout : LibC::Timespec*)
+      cqe = wait(1, timeout)
+      return unless cqe
 
       begin
         yield cqe
@@ -115,11 +134,21 @@ module IOR
 
     # Returns next event. Waits for nr events to be completed if none
     # are available
-    def wait(nr)
+    def wait(nr) : CQE
       cqe = wait_cqe(nr)
       if cqe.ring_error?
         raise "Wait: #{cqe.ring_errno.message}"
       end
+
+      cqe
+    end
+
+    # Returns next event unless timeout happens. Waits for nr events to be completed if none
+    # are available
+    def wait(nr, timeout : LibC::Timespec*) : CQE?
+      cqe = wait_cqe(nr, timeout)
+      return nil if cqe.ring_timed_out?
+      raise "Wait: #{cqe.ring_errno.message}" if cqe.ring_error?
 
       cqe
     end
@@ -208,8 +237,13 @@ module IOR
       ring.value.ring_fd
     end
 
-    private def wait_cqe(nr)
+    private def wait_cqe(nr) : CQE
       res = LibUringShim._io_uring_wait_cqe_nr(ring, out cqe_ptr, nr)
+      CQE.new(cqe_ptr, res)
+    end
+
+    private def wait_cqe(nr, timeout) : CQE
+      res = LibUring.io_uring_wait_cqes(ring, out cqe_ptr, nr, timeout, nil)
       CQE.new(cqe_ptr, res)
     end
   end

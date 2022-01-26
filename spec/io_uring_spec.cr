@@ -125,6 +125,35 @@ describe IOR::IOUring do
         end
       end
     end
+
+    it "with timeout, timeout not reached" do
+      timeout = LibC::Timespec.new(tv_sec: 1, tv_nsec: 0)
+      IOR::IOUring.new(size: 1) do |ring|
+        ring.sqe!.nop user_data: 123
+        ring.submit
+
+        cqe = ring.wait(timeout: pointerof(timeout))
+        cqe.should_not eq nil
+        if cqe
+          cqe.ring_error?.should be_false
+          cqe.cqe_error?.should be_false
+          cqe.user_data.should eq 123
+          ring.seen cqe
+        end
+      end
+    end
+
+    it "with timeout, timeout reached" do
+      shorter = LibC::Timespec.new(tv_sec: 0, tv_nsec: 50_000)
+      longer = LibC::Timespec.new(tv_sec: 1, tv_nsec: 0)
+      IOR::IOUring.new(size: 1) do |ring|
+        ring.sqe!.timeout(pointerof(longer), user_data: 123)
+        ring.submit
+
+        cqe = ring.wait(timeout: pointerof(shorter))
+        cqe.should eq nil
+      end
+    end
   end
 
   describe "#submit_and_wait" do
