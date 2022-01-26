@@ -188,6 +188,17 @@ module IOR
       end
     end
 
+    # Peek and yield multiple CQEs, using a provided buffer as
+    # intermediary cache.
+    def peek(into cqes)
+      res = LibUring.io_uring_peek_batch_cqe(ring, cqes, cqes.size)
+      res.times do |i|
+        cqe = IOR::CQE.new(cqes[i], 0)
+        yield cqe
+        seen cqe
+      end
+    end
+
     # Marks an event as consumed
     def seen(cqe : IOR::CQE)
       LibUringShim._io_uring_cqe_seen(ring, cqe)

@@ -212,6 +212,7 @@ lib LibUring
   fun io_uring_submit(IOUring*) : LibC::Int
   fun io_uring_submit_and_wait(IOUring*, nr : LibC::UInt) : LibC::Int
   fun io_uring_wait_cqes(ring : IOUring*, cqe_ptr : LibUring::IOUringCQE**, nr : LibC::UInt, timeout : LibC::Timespec*, sigmask : Void*) : LibC::Int
+  fun io_uring_peek_batch_cqe(ring : IOUring*, cqes : LibUring::IOUringCQE**, count : LibC::UInt) : LibC::UInt
   fun io_uring_queue_exit(IOUring*) : Void
 
   fun io_uring_register_files(ring : IOUring*, files : LibC::Int*, nr_files : LibC::UInt) : LibC::Int

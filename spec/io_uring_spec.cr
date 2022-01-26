@@ -196,6 +196,28 @@ describe IOR::IOUring do
     end
   end
 
+  describe "#peek(n)" do
+    it "yields the cqes" do
+      buf = Slice(LibUring::IOUringCQE*).new(7) { Pointer(LibUring::IOUringCQE).null }
+      IOR::IOUring.new(size: 6) do |ring|
+        ring.sqe!.nop(user_data: 4711)
+        ring.sqe!.nop(user_data: 4711)
+        ring.sqe!.nop(user_data: 4711)
+        ring.sqe!.nop(user_data: 4711)
+        ring.sqe!.nop(user_data: 4711)
+        ring.submit
+        sleep 0.001
+
+        n = 0
+        ring.peek(into: buf) do |cqe|
+          n += 1
+          cqe.user_data.should eq 4711
+        end
+        n.should eq 5
+      end
+    end
+  end
+
   describe "#unsubmitted?" do
     it "does soething" do
       IOR::IOUring.new do |ring|
