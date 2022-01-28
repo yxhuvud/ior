@@ -23,6 +23,7 @@ The basic abstraction is the uring. A uring consists of a submission
 queue and a completion queue. A user writes to the submission queue
 and reads from the completion queue. An instance can be created by
 calling `IOR::IOUring.new` (there is also a block version available).
+
 Operations on a ring include:
 
 * `ring.submit`: Submits the currently unsubmitted events in the submission
@@ -31,27 +32,55 @@ queue. Multiple events can be submitted at once.
 * `ring.wait`, `ring.wait(n)` : Wait until there is at least one (`n`) entry in the
 completion queue. Then it returns the first of those.
 
-* `ring.peek`: If there is an unprocessed entry in the submission queue,
+Both variants supports a timeout parameter.
+
+* `ring.submit_and_wait(n = 1)`: Do both submit and wait at once
+
+* `ring.peek`, `ring.peek(buf)`: If there is an unprocessed entry in the submission queue,
 return it. Otherwise return `nil`.
 
-* `ring.seen(cqe_ptr)`: Marks the given completion queue event as seen.
+If a block is supplied, then the entry will be yielded and then marked
+as seen.
 
-* `ring.sqe`: Fetches a submission queue event.
+If a block and buffer is supplied, then peek will fill as much of the
+buffer with completed entries as possible and then yield them and mark
+them as seen.
+
+* `ring.seen(cqe)`: Marks the given completion queue event as seen.
+
+* `ring.sqe`, `ring.sqe!`: Fetches a submission queue event. Note that
+  it can return `nil` if submission queue is full.
 
   The following operations are then supported to configure the sqe.
+  See `sqe.cr` for detailed parameter options.
 
   * `sqe.nop`: Submit an event and get it back in the completion
     queue, without actually doing anything.
+  * `sqe.read`, `sqe.write`: Reads and writes. Same as `read` and `write` syscalls.
+    If no offset is provided it will read from current position.
   * `sqe.readv`, `sqe.writev`: Vectored writes. Same as `readv` and
     `writev` syscalls.
   * `sqe.fsync`: File sync. Same as `fsync` syscall, but note that the
                 queue doesn't promise to handle events in order, by
                 default.
+  * `sqe.poll_add`: Similar to `poll` and `epoll`.
+  * `sqe.send`, `sqe.recv`: Similar to `send` and `recv` syscalls.
   * `sqe.sendmsg`, `sqe.recvmsg`: Network read/write. Same as
     `sendmsg` and `recvmsg` syscalls.
-  * `sqe.poll_add`: Similar to `poll` and `epoll`.
+  * `sqe.splice`: Similar to `splice` syscall.
   * `sqe.timeout`: Wait until the specified amount of events have
     completed, or until the given time has elapsed.
+  * `sqe.link_timeout`: Timeout the previous op. Requires the `io_link`
+    flag to be set in previous message.
+  * `sqe.timeout_remove`: Remove a previously specified timeout.
+  * `sqe.async_cancel`: Cancel a previously submitted operation (identified by userdata).
+  * `sqe.accept`, `sqe.connect`: Similar to `accept` and `connect` syscalls.
+  * `sqe.fallocate`: Similar to `fallocate` syscall.
+  * `sqe.openat`: Similar to `openat` syscall.
+  * `sqe.close`, `sqe.shutdown`: Similar to `close` and `shutdown` syscalls.
+  * `sqe.renameat`, `sqe.unlinkat`: Similar to `renameat` and `unlinkat` syscalls.
+  * `sqe.files_update`: Update the list of registred files. Similar to
+    `#register_files` on the ring, but async.
 
   All SQEs supports the following options:
     * `fixed_file` : Use one of the previously registered files. See `IOR::IOUring#register_files`.
@@ -75,7 +104,12 @@ queue event (sqe) must have the `fixed_file` flag set.
 
 * `ring.space_left`: Shows how many more events can be sent before `submit` is necessary.
 
-* `ring.cq_read`: Shows how many events are waiting in the completion queue.
+* `ring.cq_ready`: Shows how many events are waiting in the completion queue.
+
+* `ring.unsubmitted?`: Returns true if there are any unsubmitted events.
+
+* `ring.full_submission_queue?`: Returns true if the submission queue
+  needs to be submitted.
 
 Example:
 ```crystal
