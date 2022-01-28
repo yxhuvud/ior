@@ -103,7 +103,7 @@ module IOR
       prep_rw(LibUring::Op::ACCEPT, fd, 0, 0, 0, **options)
     end
 
-    def connect(fd, addr, size,  **options)
+    def connect(fd, addr, size, **options)
       prep_rw(LibUring::Op::CONNECT, fd, addr, 0, size, **options)
     end
 
@@ -135,6 +135,28 @@ module IOR
 
     def close(fd, **options)
       prep_rw(LibUring::Op::CLOSE, fd, 0, 0, 0, **options)
+    end
+
+    def shutdown(fd, **options)
+      prep_rw(LibUring::Op::SHUTDOWN, fd, 0, 0, 0, **options)
+    end
+
+    def renameat(olddirfd, oldpath, newdirfd, newpath, noreplace = false, exchange = false, **options)
+      raise ArgumentError.new("Exchange and noreplace cannot both be set.") if noreplace & exchange
+      flags = LibC::RENAME_FLAG::None
+      flags |= LibC::RENAME_FLAG::RENAME_NOREPLACE if noreplace
+      flags |= LibC::RENAME_FLAG::RENAME_EXCHANGE if exchange
+
+      newdirfd = newdirfd.is_a?(Int32) ? newdirfd : newdirfd.fd
+      prep_rw(LibUring::Op::RENAMEAT, olddirfd, oldpath.to_unsafe.address, newdirfd, newpath.to_unsafe.address, **options).tap do |sqe|
+        sqe.value.event_flags.rename_flags = flags
+      end
+    end
+
+    def unlinkat(dirfd, path, removedir = false, **options)
+      prep_rw(LibUring::Op::UNLINKAT, dirfd, path.to_unsafe.address, **options).tap do |sqe|
+        sqe.value.event_flags.unlink_flags = 0x200 if removedir
+      end
     end
 
     def files_update(files : Array(Int32), off = 0, **options)

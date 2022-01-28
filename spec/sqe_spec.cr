@@ -579,10 +579,95 @@ describe IOR::SQE do
     it "works" do
       fh = File.open ".test/close", "w"
       IOR::IOUring.new do |ring|
-        ring.sqe!.close fh.fd
+        ring.sqe!.close fh
         ring.submit_and_wait
         cqe = ring.wait
         cqe.success?.should eq true
+      end
+    end
+  end
+
+  describe "#shutdown" do
+    it "works" do
+      left, right = UNIXSocket.pair
+      IOR::IOUring.new do |ring|
+        ring.sqe!.shutdown(left, user_data: 4711)
+        ring.submit_and_wait
+        cqe = ring.wait
+        cqe.success?.should be_true
+      end
+    end
+  end
+
+  describe "#renameat" do
+    it "renames" do
+      File.write ".test/renameat1", "test"
+      IOR::IOUring.new do |ring|
+        ring.sqe!.renameat(LibUring::AT_FDCWD, ".test/renameat1",
+          LibUring::AT_FDCWD, ".test/renameat1.2")
+        ring.submit_and_wait
+        cqe = ring.wait
+        cqe.success?.should be_true
+        File.read(".test/renameat1.2").should eq "test"
+        File.delete(".test/renameat1.2")
+      end
+    end
+
+    it "exchanges" do
+      File.write ".test/renameat2.1", "test"
+      File.write ".test/renameat2.2", "test2"
+      IOR::IOUring.new do |ring|
+        ring.sqe!.renameat(LibUring::AT_FDCWD, ".test/renameat2.1", LibUring::AT_FDCWD, ".test/renameat2.2", exchange: true)
+        ring.submit_and_wait
+        cqe = ring.wait
+
+        cqe.success?.should be_true
+        File.read(".test/renameat2.1").should eq "test2"
+        File.read(".test/renameat2.2").should eq "test"
+
+        File.delete(".test/renameat2.1")
+        File.delete(".test/renameat2.2")
+      end
+    end
+
+    it "noreplace" do
+      File.write ".test/renameat3.1", "test"
+      File.write ".test/renameat3.2", "test2"
+      IOR::IOUring.new do |ring|
+        ring.sqe!.renameat(LibUring::AT_FDCWD, ".test/renameat3.1",
+          LibUring::AT_FDCWD, ".test/renameat3.2", noreplace: true)
+        ring.submit_and_wait
+        cqe = ring.wait
+
+        cqe.success?.should be_false
+        cqe.error_message.should eq "File exists"
+
+        File.delete(".test/renameat3.1")
+        File.delete(".test/renameat3.2")
+      end
+    end
+  end
+
+  describe "#unlinkat" do
+    it "can delete a file" do
+      File.write ".test/unlink", "test"
+      IOR::IOUring.new do |ring|
+        ring.sqe!.unlinkat(LibUring::AT_FDCWD, ".test/unlink")
+        ring.submit_and_wait
+        cqe = ring.wait
+
+        cqe.success?.should be_true
+      end
+    end
+
+    it "can delete a directory" do
+      Dir.mkdir_p(".test/unlink")
+      IOR::IOUring.new do |ring|
+        ring.sqe!.unlinkat(LibUring::AT_FDCWD, ".test/unlink", removedir: true)
+        ring.submit_and_wait
+        cqe = ring.wait
+
+        cqe.success?.should be_true
       end
     end
   end

@@ -38,4 +38,12 @@ lib LibC
     POLLONESHOT   = 1 << 30
     POLLET        = 1 << 31
   end
+
+  # Defined in fs.h
+  @[Flags]
+  enum RENAME_FLAG : UInt32
+    RENAME_NOREPLACE = 0x0001
+    RENAME_EXCHANGE  = 0x0002
+    RENAME_WHITEOUT  = 0x0004
+  end
 end

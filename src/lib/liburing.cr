@@ -34,9 +34,15 @@ lib LibUring
     OPENAT2
     EPOLL_CTL
     SPLICE          # ^Linux 5.7
-    PROVIDE_BUFFERS # ?? Not documented in man files
-    REMOVE_BUFFERS  # ??
-    IORING_OP_TEE
+    PROVIDE_BUFFERS # 5.7
+    REMOVE_BUFFERS  # 5.7
+    TEE             # 5.8
+    SHUTDOWN        # 5.11
+    RENAMEAT        # 5.11
+    UNLINKAT        # 5.11
+    MKDIRAT         # 5.15
+    SYMLINKAT       # 5.15
+    LINKAT          # 5.15
   end
 
   @[Flags]
@@ -106,6 +112,8 @@ lib LibUring
     statx_flags : UInt32
     fadvice_flags : UInt32
     splice_flags : UInt32
+    rename_flags : LibC::RENAME_FLAG
+    unlink_flags : Int32
   end
 
   union SQEBuf
@@ -220,4 +228,6 @@ lib LibUring
 
   # OPENAT magic number to open relative to current working directory
   AT_FDCWD = -100
+  # UNLINKAT Magic number to delete directories
+  AT_REMOVEDIR = 0x200
 end
