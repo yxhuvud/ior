@@ -48,8 +48,11 @@ module IOR
 
     def self.new(**options)
       ring = new(**options)
-      yield ring
-      ring.close
+      begin
+        yield ring
+      ensure
+        ring.close
+      end
     end
 
     private def ring
