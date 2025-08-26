@@ -7,6 +7,7 @@ they can accomplish that.
 ## Installation
 
 0. Install liburing ( https://github.com/axboe/liburing ) and a recent Linux kernel.
+For Ubuntu this means installing liburing-dev package.
 
 1. Add the dependency to your `shard.yml`:
 
