@@ -376,17 +376,22 @@ describe IOR::SQE do
         ring.sqe!.timeout_remove(4711, user_data: 13)
         ring.submit
 
-        # The order between this and the following group is arbitrary,
-        # but consistent for this particular test. Don't rely on it.
-        cqe = ring.wait
-        cqe.user_data.should eq 4711
-        cqe.error_message.should eq "Operation canceled"
-        cqe.timed_out?.should be_false
-        ring.seen cqe
+        # The order of the cqes here depends on linux version and are not guaranteed in any way..
+        cqe1 = ring.wait
+        ring.seen cqe1
+        cqe2 = ring.wait
 
-        cqe = ring.wait
-        cqe.user_data.should eq 13
-        cqe.res.should eq 0
+        ordered_cqes = [cqe1, cqe2].sort_by &.user_data
+        first = ordered_cqes.first
+        second = ordered_cqes.last
+
+        first.user_data.should eq 13
+        first.res.should eq 0
+        first.timed_out?.should be_false
+
+        second.user_data.should eq 4711
+        second.error_message.should eq "Operation canceled"
+        second.timed_out?.should be_false
       end
     end
   end
