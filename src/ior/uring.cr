@@ -1,4 +1,4 @@
-require "../lib/liburing_shim"
+require "../lib/liburing"
 require "./sqe"
 require "./cqe"
 
@@ -204,7 +204,7 @@ module IOR
 
     # Marks an event as consumed
     def seen(cqe : IOR::CQE)
-      LibUringShim._io_uring_cqe_seen(ring, cqe)
+      LibUring.io_uring_cqe_seen(ring, cqe)
     end
 
     # Return how many unsubmitted entries there is in the submission
@@ -231,7 +231,7 @@ module IOR
 
     # Completion events waiting for processing.
     def cq_ready
-      LibUringShim._io_uring_cq_ready(ring)
+      LibUring.io_uring_cq_ready(ring)
     end
 
     # Returns a sqe if there is space available, or nil.
@@ -252,7 +252,7 @@ module IOR
     end
 
     private def wait_cqe(nr) : CQE
-      res = LibUringShim._io_uring_wait_cqe_nr(ring, out cqe_ptr, nr)
+      res = LibUring.io_uring_wait_cqe_nr(ring, out cqe_ptr, nr)
       CQE.new(cqe_ptr, res)
     end
 

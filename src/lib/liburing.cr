@@ -1,6 +1,6 @@
 require "./libc"
 
-@[Link("liburing")]
+@[Link("uring-ffi")]
 lib LibUring
   enum Op : UInt8
     NOP
@@ -225,6 +225,10 @@ lib LibUring
 
   fun io_uring_register_files(ring : IOUring*, files : LibC::Int*, nr_files : LibC::UInt) : LibC::Int
   fun io_uring_unregister_files(ring : IOUring*) : LibC::Int
+
+  fun io_uring_cq_ready(ring : LibUring::IOUring*) : LibC::UInt
+  fun io_uring_wait_cqe_nr(ring : LibUring::IOUring*, cqe_ptr : LibUring::IOUringCQE**, nr : LibC::UInt) : LibC::Int
+  fun io_uring_cqe_seen(ring : LibUring::IOUring*, cqe : LibUring::IOUringCQE*) : Void
 
   # OPENAT magic number to open relative to current working directory
   AT_FDCWD = -100

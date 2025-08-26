@@ -1,4 +1,3 @@
-require "./lib/liburing_shim"
 require "./ior/uring"
 
 module IOR

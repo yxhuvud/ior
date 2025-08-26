@@ -1,4 +1,4 @@
-require "../lib/liburing_shim"
+require "../lib/liburing"
 
 module IOR
   struct SQE
