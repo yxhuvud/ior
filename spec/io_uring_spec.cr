@@ -206,7 +206,7 @@ describe IOR::IOUring do
         ring.sqe!.nop(user_data: 4711)
         ring.sqe!.nop(user_data: 4711)
         ring.submit
-        sleep 0.001
+        sleep 0.001.seconds
 
         n = 0
         ring.peek(into: buf) do |cqe|

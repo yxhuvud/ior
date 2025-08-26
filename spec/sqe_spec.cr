@@ -233,7 +233,7 @@ describe IOR::SQE do
         cqe = ring.peek.should be_nil
         # Note, requires multithreading to pass.
         spawn { right.write str.to_slice }
-        sleep 0.01
+        sleep 0.01.seconds
         ring.wait(1)
         ring.peek do |cqe|
           cqe.user_data.should eq 1
